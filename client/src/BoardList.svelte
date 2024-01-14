@@ -272,4 +272,8 @@
         margin-top: 20px;
     }
 
+    span {
+        word-break: break-word;
+    }
+
 </style>
