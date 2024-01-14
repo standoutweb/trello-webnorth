@@ -111,7 +111,7 @@
 
 {#if selectedBoard}
     <div class="drawer cards">
-        <a class="btn btn-primary p-fixed r-10" on:click={closeDrawer}>Close</a>
+        <a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeDrawer}>Close</a>
         <h3>{selectedBoard.name} Cards</h3>
         {#each cards as card}
             <div class="pt-10 pb-10 bb-1 d-flex direction-column">
@@ -124,7 +124,7 @@
 
 {#if selectedCard}
     <div class="drawer actions">
-        <a class="btn btn-primary p-fixed r-10" on:click={closeCardDrawer}>Close</a>
+        <a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeCardDrawer}>← Back</a>
 
         <a class="word-break" href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
         <span class="card-description">{selectedCard.desc}</span>
@@ -234,6 +234,14 @@
 
     .r-10 {
         right: 10px;
+    }
+
+    .r-5 {
+        right: 5px;
+    }
+
+    .t-5 {
+        top: 5px;
     }
 
     .p-fixed {
