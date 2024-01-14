@@ -7,6 +7,7 @@
     let selectedCard = null;
     let cards = [];
     let actions = [];
+    let netlify_url = 'https://webnorth-internal.netlify.app/api/'
 
     onMount(async () => {
         loadBoards();
@@ -25,7 +26,7 @@
     async function refreshBoards() {
         const urlParams = new URLSearchParams(window.location.search);
         const secretToken = urlParams.get('auth');
-        const url = `http://localhost:3000/boards?auth=${encodeURIComponent(secretToken)}`;
+        const url = netlify_url + `/boards?auth=${encodeURIComponent(secretToken)}`;
         const response = await fetch(url);
         boards = await response.json();
         boards.sort((a, b) => new Date(b.dateLastActivity) - new Date(a.dateLastActivity));
@@ -38,7 +39,7 @@
     async function loadCards(boardId) {
         const urlParams = new URLSearchParams(window.location.search);
         const secretToken = urlParams.get('auth');
-        const url = `http://localhost:3000/boards/${boardId}/cards?auth=${encodeURIComponent(secretToken)}`;
+        const url = netlify_url + `/boards/${boardId}/cards?auth=${encodeURIComponent(secretToken)}`;
         const response = await fetch(url);
         cards = await response.json();
         cards.sort((a, b) => new Date(b.dateLastActivity) - new Date(a.dateLastActivity));
@@ -47,7 +48,7 @@
     async function loadCardActions(cardId) {
         const urlParams = new URLSearchParams(window.location.search);
         const secretToken = urlParams.get('auth');
-        const url = `http://localhost:3000/cards/${cardId}/actions?auth=${encodeURIComponent(secretToken)}`;
+        const url = netlify_url + `/cards/${cardId}/actions?auth=${encodeURIComponent(secretToken)}`;
         const response = await fetch(url);
         actions = await response.json(); // Updated this line
         actions.sort((a, b) => new Date(b.date) - new Date(a.date));
