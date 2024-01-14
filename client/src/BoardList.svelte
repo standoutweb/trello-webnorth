@@ -202,7 +202,7 @@
         position: fixed;
         right: 0;
         top: 0;
-        width: 100%;
+        width: auto;
         max-width: 700px;
         height: 100%;
         background-color: white;
