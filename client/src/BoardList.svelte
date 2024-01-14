@@ -128,24 +128,26 @@
 
         <a class="word-break" href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
         <span class="card-description">{selectedCard.desc}</span>
-        {#if actions && actions.length > 0}
-            {#each actions as action}
+        <div class="mt-20">
+            {#if actions && actions.length > 0}
+                {#each actions as action}
+                    <div class="pt-10 pb-10 bb-1 d-flex direction-column">
+                        <span class="text-small mb-10">{action.type}</span>
+                        {#if action.data.listAfter && action.data.listAfter.name}
+                            <span class="text-small mb-10">Moved to: {action.data.listAfter.name}</span>
+                        {/if}
+                        {#if action.data.text && action.data.text.length > 0}
+                            <span class="text-small mb-10">{action.data.text}</span>
+                        {/if}
+                        <span class="text-small">{action.memberCreator.fullName} on {convertDate(action.date)}</span>
+                    </div>
+                {/each}
+            {:else}
                 <div class="pt-10 pb-10 bb-1 d-flex direction-column">
-                    <span class="text-small mb-10">{action.type}</span>
-                    {#if action.data.listAfter && action.data.listAfter.name}
-                        <span class="text-small mb-10">Moved to: {action.data.listAfter.name}</span>
-                    {/if}
-                    {#if action.data.text && action.data.text.length > 0}
-                        <span class="text-small mb-10">{action.data.text}</span>
-                    {/if}
-                    <span class="text-small">{action.memberCreator.fullName} on {convertDate(action.date)}</span>
+                    <span>No actions found, this might be a new card</span>
                 </div>
-            {/each}
-        {:else}
-            <div class="pt-10 pb-10 bb-1 d-flex direction-column">
-                <span>No actions found, this might be a new card</span>
-            </div>
-        {/if}
+            {/if}
+        </div>
     </div>
 {/if}
 
@@ -256,6 +258,10 @@
 
     .pb-10 {
         padding-bottom: 10px;
+    }
+
+    .mt-20 {
+        margin-top: 20px;
     }
 
 </style>
