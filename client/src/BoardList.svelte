@@ -81,7 +81,13 @@
         const hours = dateObj.getHours();
         const minutes = dateObj.getMinutes();
         const seconds = dateObj.getSeconds();
-        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+
+        const twoDigitDay = day < 10 ? `0${day}` : day;
+        const twoDigitMonth = month < 10 ? `0${month}` : month;
+        const twoDigitHours = hours < 10 ? `0${hours}` : hours;
+        const twoDigitMinutes = minutes < 10 ? `0${minutes}` : minutes;
+        const twoDigitSeconds = seconds < 10 ? `0${seconds}` : seconds;
+        return `${twoDigitDay}/${twoDigitMonth}/${year} ${twoDigitHours}:${twoDigitMinutes}:${twoDigitSeconds}`;
     }
 </script>
 
@@ -99,7 +105,7 @@
 {#each boards as board}
     <div class="d-flex gap-20 justify-between bb-1 p-10">
         <a on:click={() => handleBoardClick(board)} target="_blank">{board.name}</a>
-        <div>{convertDate(board.dateLastActivity)}</div>
+        <div class="text-right">{convertDate(board.dateLastActivity)}</div>
     </div>
 {/each}
 
@@ -233,6 +239,10 @@
 
     .word-break {
         word-break: break-all;
+    }
+
+    .text-right {
+        text-align: right;
     }
 
 </style>
