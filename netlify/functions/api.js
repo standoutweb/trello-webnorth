@@ -20,7 +20,7 @@ app.use(cors(corsOptions));
 const router = Router();
 router.get("/hello", (req, res) => res.send("Hello World!"));
 
-api.use("/api/", router);
+app.use("/api/", router);
 
 app.get('/', (req, res) => res.send('Hello World!'));
 app.get('/boards', async (req, res) => {
