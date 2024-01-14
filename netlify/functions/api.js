@@ -18,6 +18,19 @@ app.use(cors(corsOptions));
 
 // Define your routes
 app.get('/', (req, res) => res.send('Hello World!'));
+app.get('/boards', async (req, res) => {
+    try {
+
+        if (req.query.auth !== SECRET_TOKEN) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        const boards = await trello.getBoards('me');
+        res.json(boards);
+    } catch (error) {
+        res.status(500).send(error.toString());
+    }
+});
 app.get('/cards/:cardId/actions', async (req, res) => {
     try {
 
