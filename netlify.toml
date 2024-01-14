@@ -16,5 +16,5 @@ status = 200
 
 [[redirects]]
 from = "/"
-to = "/view"
+to = "/view/"
 status = 301
