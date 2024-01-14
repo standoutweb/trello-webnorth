@@ -109,7 +109,7 @@
         <h3>{selectedBoard.name} Cards</h3>
         {#each cards as card}
             <div class="p-10 bb-1 d-flex direction-column">
-                <a on:click={handleCardClick(card)} target="_blank">{card.name}</a>
+                <a class="word-break" on:click={handleCardClick(card)} target="_blank">{card.name}</a>
                 <span class="text-small">Latest Activity: {convertDate(card.dateLastActivity)}</span>
             </div>
         {/each}
@@ -120,7 +120,7 @@
     <div class="drawer actions">
         <a class="btn btn-primary p-fixed r-10" on:click={closeCardDrawer}>Close</a>
 
-        <a href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
+        <a class="word-break" href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
         {#if actions && actions.length > 0}
             {#each actions as action}
                 <div class="p-10 bb-1 d-flex direction-column">
@@ -229,6 +229,10 @@
 
     .p-fixed {
         position: fixed;
+    }
+
+    .word-break {
+        word-break: break-all;
     }
 
 </style>
