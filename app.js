@@ -1,3 +1,5 @@
+// todo: reuse routes with netlify functions
+
 require('dotenv').config();
 
 const express = require('express');
