@@ -1,5 +1,5 @@
-const serverless = require('serverless-http');
-const express = require('express');
+import express, { Router } from "express";
+import serverless from "serverless-http";
 const cors = require('cors');
 const app = express();
 require('dotenv').config();
