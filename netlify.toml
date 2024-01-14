@@ -6,3 +6,8 @@ force = true
 from = "/api/*"
 status = 200
 to = "/.netlify/functions/api/:splat"
+[[redirects]]
+from = "/"
+to = "/client/public/:splat"
+status = 200
+force = true
