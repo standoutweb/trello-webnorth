@@ -105,7 +105,7 @@
 {#each boards as board}
     <div class="d-flex gap-20 justify-between bb-1 p-10">
         <a on:click={() => handleBoardClick(board)} target="_blank">{board.name}</a>
-        <div class="text-right w-150">{convertDate(board.dateLastActivity)}</div>
+        <div class="text-right d-flex shrink-0">{convertDate(board.dateLastActivity)}</div>
     </div>
 {/each}
 
@@ -245,8 +245,8 @@
         text-align: right;
     }
 
-    .w-150 {
-        min-width: 150px;
+    .shrink-0 {
+        flex-shrink: 0;
     }
 
 </style>
