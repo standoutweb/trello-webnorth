@@ -216,7 +216,7 @@
         height: 100%;
         background-color: white;
         box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-        padding: 20px;
+        padding: 10px;
         overflow-y: auto;
     }
 
