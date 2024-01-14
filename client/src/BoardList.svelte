@@ -114,7 +114,7 @@
         <a class="btn btn-primary p-fixed r-10" on:click={closeDrawer}>Close</a>
         <h3>{selectedBoard.name} Cards</h3>
         {#each cards as card}
-            <div class="p-10 bb-1 d-flex direction-column">
+            <div class="pt-10 pb-10 bb-1 d-flex direction-column">
                 <a class="word-break" on:click={handleCardClick(card)} target="_blank">{card.name}</a>
                 <span class="text-small">Latest Activity: {convertDate(card.dateLastActivity)}</span>
             </div>
@@ -127,9 +127,10 @@
         <a class="btn btn-primary p-fixed r-10" on:click={closeCardDrawer}>Close</a>
 
         <a class="word-break" href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
+        <span class="card-description">{selectedCard.desc}</span>
         {#if actions && actions.length > 0}
             {#each actions as action}
-                <div class="p-10 bb-1 d-flex direction-column">
+                <div class="pt-10 pb-10 bb-1 d-flex direction-column">
                     <span class="text-small mb-10">{action.type}</span>
                     {#if action.data.listAfter && action.data.listAfter.name}
                         <span class="text-small mb-10">Moved to: {action.data.listAfter.name}</span>
@@ -141,7 +142,7 @@
                 </div>
             {/each}
         {:else}
-            <div class="p-10 bb-1 d-flex direction-column">
+            <div class="pt-10 pb-10 bb-1 d-flex direction-column">
                 <span>No actions found, this might be a new card</span>
             </div>
         {/if}
@@ -247,6 +248,14 @@
 
     .shrink-0 {
         flex-shrink: 0;
+    }
+
+    .pt-10 {
+        padding-top: 10px;
+    }
+
+    .pb-10 {
+        padding-bottom: 10px;
     }
 
 </style>
