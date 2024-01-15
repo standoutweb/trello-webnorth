@@ -1,5 +1,5 @@
 <script>
-    const netlifyIdentity = require('netlify-identity-widget');
+    import netlifyIdentity from 'netlify-identity-widget';
     import { onMount } from 'svelte';
 
     // Initialize Netlify Identity
