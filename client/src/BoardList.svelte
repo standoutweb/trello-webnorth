@@ -307,7 +307,7 @@
         word-break: break-word;
     }
 
-    pointer {
+    .pointer {
         cursor: pointer;
     }
 
