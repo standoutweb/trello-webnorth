@@ -122,7 +122,7 @@
     {#if lastRefreshed}
         <span>Last refreshed: {convertDate(lastRefreshed)}</span>
     {/if}
-    <div>
+    <div class="pt-10 pb-10">
         <a class="btn btn-primary" on:click={refreshBoards}>Refresh</a>
 
         <a class="btn btn-primary" on:click={() => netlifyIdentity.open()}>
