@@ -101,7 +101,20 @@
     }
 
     function convertDate(date) {
-        // ... existing convertDate function
+        const dateObj = new Date(date);
+        const day = dateObj.getDate();
+        const month = dateObj.getMonth() + 1;
+        const year = dateObj.getFullYear();
+        const hours = dateObj.getHours();
+        const minutes = dateObj.getMinutes();
+        const seconds = dateObj.getSeconds();
+
+        const twoDigitDay = day < 10 ? `0${day}` : day;
+        const twoDigitMonth = month < 10 ? `0${month}` : month;
+        const twoDigitHours = hours < 10 ? `0${hours}` : hours;
+        const twoDigitMinutes = minutes < 10 ? `0${minutes}` : minutes;
+        const twoDigitSeconds = seconds < 10 ? `0${seconds}` : seconds;
+        return `${twoDigitDay}/${twoDigitMonth}/${year} ${twoDigitHours}:${twoDigitMinutes}:${twoDigitSeconds}`;
     }
 </script>
 
@@ -109,8 +122,13 @@
     {#if lastRefreshed}
         <span>Last refreshed: {convertDate(lastRefreshed)}</span>
     {/if}
-    <a class="btn btn-primary" on:click={refreshBoards}>Refresh</a>
-    <a class="btn btn-primary" on:click={() => netlifyIdentity.open('login')}>Log In</a>
+    <div>
+        <a class="btn btn-primary" on:click={refreshBoards}>Refresh</a>
+
+        <a class="btn btn-primary" on:click={() => netlifyIdentity.open()}>
+            {netlifyIdentity.currentUser() ? 'Account' : 'Login'}
+        </a>
+    </div>
 </div>
 
 <div class="d-flex gap-20 justify-between p-10 bg-black text-white">
