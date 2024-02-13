@@ -11,10 +11,12 @@
     let selectedCard = null;
     let cards = [];
     let actions = [];
+    let timelogEntries = [];
     let netlify_url = 'https://webnorth-internal.netlify.app/api/'
 
     onMount(async () => {
         await loadBoards();
+        await paymoEntries();
     });
 
     async function makeAuthRequest(url) {
@@ -123,6 +125,31 @@
         const twoDigitSeconds = seconds < 10 ? `0${seconds}` : seconds;
         return `${twoDigitDay}/${twoDigitMonth}/${year} ${twoDigitHours}:${twoDigitMinutes}:${twoDigitSeconds}`;
     }
+
+    async function paymoEntries() {
+        const url = `${netlify_url}/paymo-entries`;
+        try {
+            const response = await makeAuthRequest(url);
+            timelogEntries = response;
+            console.log(response);
+        } catch (error) {
+            console.error('Error loading paymo entries:', error);
+        }
+    }
+
+
+    // filter out paymo entries with empty description and without a trello link
+    async function filterPaymoEntries(entries) {
+        const filteredEntries = entries.filter(entry => entry.description && entry.description.includes('trello.com'));
+    }
+
+    // get trello card id from paymo entry description
+    async function getTrelloCardId(description) {
+        const regex = /https:\/\/trello.com\/c\/([a-zA-Z0-9]+)/;
+        const match = description.match(regex);
+        return match[1];
+    }
+
 </script>
 
 <div class="d-flex gap-20 justify-between p-10 align-center">
@@ -147,6 +174,7 @@
     <div>Board Name</div>
     <div>Latest Activity</div>
 </div>
+
 {#each boards as board}
     <div class="d-flex gap-20 justify-between bb-1 p-10">
         <a on:click={() => handleBoardClick(board)} target="_blank">{board.name}</a>
