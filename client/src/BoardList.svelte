@@ -11,7 +11,7 @@
     let selectedCard = null;
     let cards = [];
     let actions = [];
-    let netlify_url = 'https://webnorth-internal.netlify.app/api/'
+    let netlify_url = 'http://localhost:3000';
 
     onMount(async () => {
         await loadBoards();
