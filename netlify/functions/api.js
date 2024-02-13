@@ -4,7 +4,7 @@ import Trello from "trello";
 import axios from "axios"; // Ensure axios is installed for making HTTP requests
 
 const trello = new Trello(process.env.KEY, process.env.TOKEN);
-const PAYMO_API_BASE_URL = "https://api.paymoapp.com";
+const PAYMO_API_BASE_URL = "https://app.paymoapp.com/api";
 const api = express();
 const router = Router();
 
