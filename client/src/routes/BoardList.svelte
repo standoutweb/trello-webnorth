@@ -21,29 +21,29 @@
 
     onMount(async () => {
         await loadBoards();
-        await paymoEntries();
     });
 
     async function makeAuthRequest(url) {
-        if (!isDevelopment) {
-            const user = netlifyIdentity.currentUser();
-            const jwtToken = user ? await user.jwt() : null;
-            const headers = new Headers();
-            if (jwtToken) {
-                headers.append("Authorization", `Bearer ${jwtToken}`);
-            }
-            const response = await fetch(url, {headers});
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } else {
+
+        if (isDevelopment) {
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return await response.json();
         }
+
+        const user = netlifyIdentity.currentUser();
+        const jwtToken = user ? await user.jwt() : null;
+        const headers = new Headers();
+        if (jwtToken) {
+            headers.append("Authorization", `Bearer ${jwtToken}`);
+        }
+        const response = await fetch(url, {headers});
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
     }
 
     async function loadBoards() {
