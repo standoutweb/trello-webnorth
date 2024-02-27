@@ -30,30 +30,42 @@
         const url = `${netlify_url}/paymo/timelogs`;
         try {
             const response = await makeAuthRequest(url);
-            timelogEntries = response;
-            timelogEntries = Object.values(timelogEntries) || [];
-            timelogEntries = timelogEntries[0];
+            let entries = response;
+            entries = Object.values(entries) || [];
+            entries = entries[0];
 
             const regex = /https:\/\/trello.com\/c\/([a-zA-Z0-9]+)/;
-            timelogEntries = timelogEntries.filter(entry => regex.test(entry.description));
+            entries = entries.filter(entry => regex.test(entry.description));
 
-            timelogEntries = timelogEntries.map(entry => {
+            entries = entries.map(entry => {
                 const match = entry.description.match(regex);
                 entry.description = match[1];
                 return entry;
             });
 
-            timelogEntries.sort((a, b) => a.description.localeCompare(b.description));
+            entries.sort((a, b) => a.description.localeCompare(b.description));
 
-            totalTime = timelogEntries.reduce((acc, entry) => acc + entry.duration, 0);
+            totalTime = entries.reduce((acc, entry) => acc + entry.duration, 0);
 
-            console.log(response);
+            // Categorize entries by Trello card
+            timelogEntries = entries.reduce((acc, entry) => {
+                if (!acc[entry.description]) {
+                    acc[entry.description] = [];
+                }
+                acc[entry.description].push({
+                    duration: entry.duration,
+                    startTime: entry.start_time,
+                    endTime: entry.end_time,
+                    trelloLink: `https://trello.com/c/${entry.description}`,
+                    userId: entry.user_id
+                });
+                return acc;
+            }, {});
         } catch (error) {
             timelogEntries = [];
             console.error('Error loading paymo entries:', error);
         }
     }
-
     function secondsToMinutes(seconds) {
         return Math.floor(seconds / 60);
     }
@@ -79,15 +91,18 @@
 
 <main>
     {minutesToHours(secondsToMinutes(totalTime))} Hours Total (Time logged with trello link inside)
-    {#each timelogEntries as timelogEntry}
-        <div>
-            {secondsToMinutes(timelogEntry.duration)} -
-            <a target="_blank" href="https://trello.com/c/{timelogEntry.description}">{timelogEntry.description.replace(/(<([^>]+)>)/gi, "")}</a> -
-            {beautifyDate(timelogEntry.start_time)} - {beautifyDate(timelogEntry.end_time)}
-        </div>
+    {#each Object.entries(timelogEntries) as [cardId, entries]}
+        <h2>Card ID: {cardId}</h2>
+        {#each entries as entry}
+            <div>
+                {secondsToMinutes(entry.duration)} -
+                <a target="_blank" href="{entry.trelloLink}">{cardId}</a> -
+                {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)} -
+                User ID: {entry.userId}
+            </div>
+        {/each}
     {/each}
 </main>
-
 <style>
     main {
         padding: 10px;
