@@ -2,6 +2,7 @@
     import netlifyIdentity from 'netlify-identity-widget';
     import {onMount} from 'svelte';
 
+    // Initialize Netlify Identity
     netlifyIdentity.init();
 
     let boards = [];
@@ -12,33 +13,20 @@
     let actions = [];
     let timelogEntries = [];
     let netlify_url = 'https://webnorth-internal.netlify.app/api'
-    let local_url = 'http://localhost:3000'
-    const isDevelopment = window.location.hostname === 'localhost';
-
-    if (isDevelopment) {
-        netlify_url = local_url;
-    }
 
     onMount(async () => {
         await loadBoards();
     });
 
     async function makeAuthRequest(url) {
-
-        if (isDevelopment) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        }
-
         const user = netlifyIdentity.currentUser();
         const jwtToken = user ? await user.jwt() : null;
+
         const headers = new Headers();
         if (jwtToken) {
             headers.append("Authorization", `Bearer ${jwtToken}`);
         }
+
         const response = await fetch(url, {headers});
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

@@ -44,7 +44,6 @@ router.get('/cards/:cardId/actions', requireAuth, async (req, res) => {
     }
 });
 
-// Paymo time loggings feature
 router.get('/paymo/timelogs', requireAuth, async (req, res) => {
     let { startDate, endDate } = req.query;
 
