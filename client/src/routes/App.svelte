@@ -6,13 +6,13 @@
 
 <Router>
 	<nav>
-		<Link to="/">Boardlist</Link>
+		<Link to="/view/">Boardlist</Link>
 		<Link to="/paymo">Paymo</Link>
 	</nav>
 
 	<main>
-		<Route path="/" component="{BoardList}" />
-		<Route path="/paymo" component="{Paymo}" />
+		<Route path="/view/" component="{BoardList}" />
+		<Route path="/paymo/" component="{Paymo}" />
 	</main>
 </Router>
 
