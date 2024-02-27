@@ -97,8 +97,7 @@
             <div>
                 {secondsToMinutes(entry.duration)} -
                 <a target="_blank" href="{entry.trelloLink}">{cardId}</a> -
-                {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)} -
-                User ID: {entry.userId}
+                {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)}
             </div>
         {/each}
     {/each}
