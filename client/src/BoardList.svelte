@@ -12,7 +12,7 @@
     let cards = [];
     let actions = [];
     let timelogEntries = [];
-    let netlify_url = 'https://webnorth-internal.netlify.app'
+    let netlify_url = 'https://webnorth-internal.netlify.app/api'
 
     onMount(async () => {
         await loadBoards();
