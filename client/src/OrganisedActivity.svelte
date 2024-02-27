@@ -5,8 +5,8 @@
   let projects = []; // This will hold the structured data for rendering
 
   onMount(async () => {
-    let before = '2024-02-09T00:00:00Z';
-    let after = '2024-02-08T00:00:00Z';
+    let before = '2024-02-24T00:00:00Z';
+    let after = '2024-02-23T00:00:00Z';
     await loadActions(before, after);
   });
 
@@ -63,7 +63,7 @@
     <ul>
       {#each cards as { cardName, actions, date, shortLink }}
         <li>
-          <a href={`https://trello.com/c/${shortLink}`} target="_blank">{cardName}</a>
+          <a href={`https://trello.com/c/${shortLink}`} target="_blank">{cardName} - {`https://trello.com/c/${shortLink}`}</a>
           <small style="user-select: none;">{actions}</small>
         </li>
       {/each}
