@@ -6,7 +6,7 @@
 
 <Router>
 	<nav>
-		<Link to="/paymo">Paymo</Link>
+		<Link to="/paymo/">Paymo</Link>
 	</nav>
 
 	<main>

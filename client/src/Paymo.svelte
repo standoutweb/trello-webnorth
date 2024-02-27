@@ -6,7 +6,7 @@
 
     let timelogEntries = [];
     let totalTime = 0;
-    let netlify_url = 'https://webnorth-internal.netlify.app/api'
+    let netlify_url = process.env.API_URL
 
     onMount(async () => {
         await paymoEntries();

@@ -8,6 +8,12 @@ const PAYMO_API_BASE_URL = "https://app.paymoapp.com/api";
 const api = express();
 const router = Router();
 
+router.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000'); // Or '*' for any origin
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
 // Middleware to check for authenticated user
 const requireAuth = (req, res, next) => {
 
