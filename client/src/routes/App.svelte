@@ -6,12 +6,10 @@
 
 <Router>
 	<nav>
-		<Link to="/view/">Boardlist</Link>
 		<Link to="/paymo">Paymo</Link>
 	</nav>
 
 	<main>
-		<Route path="/view/" component="{BoardList}" />
 		<Route path="/paymo/" component="{Paymo}" />
 	</main>
 </Router>
@@ -23,3 +21,5 @@
 		gap: 20px;
 	}
 </style>
+
+<BoardList />
