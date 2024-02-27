@@ -60,12 +60,15 @@ router.get('/paymo/timelogs', requireAuth, async (req, res) => {
         endDate = lastWeekEnd.toISOString().split('T')[0];
     }
 
+    const username = process.env.PAYMO_API_KEY;
+    const password = 'random'; // Use a random password as specified
+    const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+
     try {
         const response = await axios.get(`${PAYMO_API_BASE_URL}/entries`, {
-            headers: { Authorization: `Bearer ${process.env.PAYMO_API_KEY}` },
+            headers: { Authorization: basicAuth },
             params: {
-                // Update this line if the API expects a different format
-                where: `start_date>="${startDate}" and end_date<="${endDate}"`
+                where: `time_interval in ("${startDate}","${endDate}")`
             }
         });
         res.json(response.data);

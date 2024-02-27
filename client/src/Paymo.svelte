@@ -6,7 +6,7 @@
 
     let timelogEntries = [];
     let totalTime = 0;
-    let netlify_url = 'https://webnorth-internal.netlify.app/api/'
+    let netlify_url = 'https://webnorth-internal.netlify.app/api'
     let local_url = 'http://localhost:3000'
     const isDevelopment = window.location.hostname === 'localhost';
 
