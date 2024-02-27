@@ -18,7 +18,6 @@ router.use((req, res, next) => {
 const requireAuth = (req, res, next) => {
 
     if (process.env.NODE_ENV === 'development') {
-        console.log(process.env.KEY, process.env.TOKEN, process.env.PAYMO_API_KEY);
         return next();
     }
 
