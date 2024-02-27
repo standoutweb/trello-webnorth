@@ -46,17 +46,27 @@ router.get('/cards/:cardId/actions', requireAuth, async (req, res) => {
 
 // Paymo time loggings feature
 router.get('/paymo/timelogs', requireAuth, async (req, res) => {
-    const { startDate, endDate } = req.query;
+    let { startDate, endDate } = req.query;
 
+    // Calculate last week's dates if startDate and endDate are not provided
     if (!startDate || !endDate) {
-        return res.status(400).send('Missing startDate or endDate query parameters');
+        const today = new Date();
+        const pastDay = new Date(today.setDate(today.getDate() - today.getDay() - 6)); // Get the date for last week's start (assuming Sunday as the first day of the week)
+        const lastWeekStart = new Date(pastDay.setDate(pastDay.getDate() - pastDay.getDay()));
+        const lastWeekEnd = new Date(lastWeekStart);
+        lastWeekEnd.setDate(lastWeekEnd.getDate() + 6);
+
+        // Format dates as YYYY-MM-DD
+        startDate = lastWeekStart.toISOString().split('T')[0];
+        endDate = lastWeekEnd.toISOString().split('T')[0];
     }
 
     try {
         const response = await axios.get(`${PAYMO_API_BASE_URL}/entries`, {
             headers: { Authorization: `Bearer ${process.env.PAYMO_API_KEY}` },
             params: {
-                where: `start_date>=${startDate} and end_date<=${endDate}`
+                // Update this line if the API expects a different format
+                where: `start_date>="${startDate}" and end_date<="${endDate}"`
             }
         });
         res.json(response.data);

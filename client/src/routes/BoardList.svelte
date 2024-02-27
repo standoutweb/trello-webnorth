@@ -2,7 +2,6 @@
     import netlifyIdentity from 'netlify-identity-widget';
     import {onMount} from 'svelte';
 
-    // Initialize Netlify Identity
     netlifyIdentity.init();
 
     let boards = [];
@@ -13,6 +12,12 @@
     let actions = [];
     let timelogEntries = [];
     let netlify_url = 'https://webnorth-internal.netlify.app/api/'
+    let local_url = 'http://localhost:3000'
+    const isDevelopment = window.location.hostname === 'localhost';
+
+    if (isDevelopment) {
+        netlify_url = local_url;
+    }
 
     onMount(async () => {
         await loadBoards();
@@ -20,19 +25,25 @@
     });
 
     async function makeAuthRequest(url) {
-        const user = netlifyIdentity.currentUser();
-        const jwtToken = user ? await user.jwt() : null;
-
-        const headers = new Headers();
-        if (jwtToken) {
-            headers.append("Authorization", `Bearer ${jwtToken}`);
+        if (!isDevelopment) {
+            const user = netlifyIdentity.currentUser();
+            const jwtToken = user ? await user.jwt() : null;
+            const headers = new Headers();
+            if (jwtToken) {
+                headers.append("Authorization", `Bearer ${jwtToken}`);
+            }
+            const response = await fetch(url, {headers});
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } else {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
         }
-
-        const response = await fetch(url, {headers});
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
     }
 
     async function loadBoards() {
@@ -126,16 +137,6 @@
         return `${twoDigitDay}/${twoDigitMonth}/${year} ${twoDigitHours}:${twoDigitMinutes}:${twoDigitSeconds}`;
     }
 
-    async function paymoEntries() {
-        const url = `${netlify_url}/paymo-entries`;
-        try {
-            const response = await makeAuthRequest(url);
-            timelogEntries = response;
-            console.log(response);
-        } catch (error) {
-            console.error('Error loading paymo entries:', error);
-        }
-    }
 
 
     // filter out paymo entries with empty description and without a trello link
