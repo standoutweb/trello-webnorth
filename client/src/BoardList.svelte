@@ -12,7 +12,7 @@
     let cards = [];
     let actions = [];
     let timelogEntries = [];
-    let netlify_url = 'https://webnorth-internal.netlify.app/api'
+    let netlify_url = 'https://webnorth-internal.netlify.app'
 
     onMount(async () => {
         await loadBoards();
@@ -124,21 +124,6 @@
         const twoDigitSeconds = seconds < 10 ? `0${seconds}` : seconds;
         return `${twoDigitDay}/${twoDigitMonth}/${year} ${twoDigitHours}:${twoDigitMinutes}:${twoDigitSeconds}`;
     }
-
-
-
-    // filter out paymo entries with empty description and without a trello link
-    async function filterPaymoEntries(entries) {
-        const filteredEntries = entries.filter(entry => entry.description && entry.description.includes('trello.com'));
-    }
-
-    // get trello card id from paymo entry description
-    async function getTrelloCardId(description) {
-        const regex = /https:\/\/trello.com\/c\/([a-zA-Z0-9]+)/;
-        const match = description.match(regex);
-        return match[1];
-    }
-
 </script>
 
 <div class="d-flex gap-20 justify-between p-10 align-center">
