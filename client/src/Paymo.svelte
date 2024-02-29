@@ -7,9 +7,12 @@
     let timelogEntries = [];
     let totalTime = 0;
     let netlify_url = process.env.API_URL
+    let daily_cards = [];
 
     onMount(async () => {
         await paymoEntries();
+        await loadCards();
+        await choose_only_logs_from_daily_cards();
     });
 
     async function makeAuthRequest(url) {
@@ -85,6 +88,20 @@
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         return `${day}.${month}.${year} - ${hours}:${minutes}`;
+    }
+
+    async function loadCards(boardId) {
+        const url = `${netlify_url}/boards/61483390071f5084f7480f0a/cards`;
+        try {
+            daily_cards = await makeAuthRequest(url);
+            console.log(cards);
+        } catch (error) {
+            console.error('Error loading cards:', error);
+        }
+    }
+
+    async function choose_only_logs_from_daily_cards() {
+        // Filter only logs from daily cards
     }
 
 </script>
