@@ -55,9 +55,8 @@ router.get('/cards/:cardId/actions', requireAuth, async (req, res) => {
     }
 });
 
-router.get('/paymo/timelogs', requireAuth, async (req, res) => {
+router.get('/timelogs', requireAuth, async (req, res) => {
     let { startDate, endDate } = req.query;
-
     // Calculate last week's dates if startDate and endDate are not provided
     if (!startDate || !endDate) {
         const today = new Date();

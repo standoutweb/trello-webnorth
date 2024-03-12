@@ -6,11 +6,11 @@
 
 <Router>
 	<nav>
-		<Link to="/paymo/">Paymo</Link>
+		<Link to="/">Paymo</Link>
 	</nav>
 
 	<main>
-		<Route path="/paymo/" component="{Paymo}" />
+		<Route path="/" component="{Paymo}" />
 	</main>
 </Router>
 
