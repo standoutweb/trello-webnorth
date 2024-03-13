@@ -9,8 +9,9 @@
     let netlify_url = process.env.API_URL
     let daily_cards_arr = [];
     let gapiLoaded = false;
-    const CLIENT_ID = '316705895462-ko4p8onvqpltr91eglh8jidvi68nq99u.apps.googleusercontent.com';
-    const API_KEY = 'AIzaSyAh6IR0OjlFYb82HguESGZu9TgIrVKSkM4';
+    const API_KEY = process.env.GOOGLE_API_KEY;
+    const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
 
     onMount(async () => {
         await loadCards();
@@ -108,7 +109,6 @@
 
     async function googleConnect() {
         const timeDuration = minutesToHours(secondsToMinutes(totalTime));
-        const spreadsheetId = '1K_vXF_TzSE_QhRGw9EcGf7yp6xRDYdIqfPaANUga9yg';
         const values = [
             ["Week #", timeDuration],
         ];
@@ -160,7 +160,7 @@
         var endDataColumn = existingDataRange.split(':')[1].match(/[A-Z]+/)[0];
         var newRange = `${startDataColumn}${startRow + 1}:${endDataColumn}${startRow + numRows}`;
         // Update values
-       /* var body = {
+        var body = {
             values: values
         };
         gapi.client.sheets.spreadsheets.values.update({
@@ -170,8 +170,8 @@
             resource: body
         }).then((response) => {
             var result = response.result;
-            console.log(`${result.updatedCells} cells updated.`);
-        });*/
+            alert(`${result.updatedCells} cells updated.`);
+        });
     }
 
 </script>
