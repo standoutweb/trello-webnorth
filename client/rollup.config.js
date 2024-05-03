@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import json from '@rollup/plugin-json';
 import svelte from 'rollup-plugin-svelte';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
@@ -49,10 +50,14 @@ export default {
 				dev: !production
 			}
 		}),
+		json(),
 		replace({
 			preventAssignment: true,
 			values: {
 				'process.env.API_URL': JSON.stringify(process.env.API_URL),
+				'process.env.GOOGLE_API_KEY': JSON.stringify(process.env.GOOGLE_API_KEY),
+				'process.env.GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID),
+				'process.env.GOOGLE_SPREADSHEET_ID': JSON.stringify(process.env.GOOGLE_SPREADSHEET_ID),
 			},
 		}),
 		// we'll extract any component CSS out into

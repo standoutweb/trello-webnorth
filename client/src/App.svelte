@@ -1,8 +1,11 @@
 <script>
     import {Router, Link, Route} from 'svelte-routing';
+	import Google from "./Google.svelte";
     import BoardList from './BoardList.svelte';
 	import Paymo from './Paymo.svelte';
 </script>
+
+
 
 <Router>
 	<nav>
