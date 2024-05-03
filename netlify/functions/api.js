@@ -2,6 +2,8 @@ import express, { Router } from "express";
 import serverless from "serverless-http";
 import Trello from "trello";
 import axios from "axios"; // Ensure axios is installed for making HTTP requests
+const { GoogleAuth } = require('google-auth-library');
+const { google } = require('googleapis');
 
 const trello = new Trello(process.env.KEY, process.env.TOKEN);
 const PAYMO_API_BASE_URL = "https://app.paymoapp.com/api";
@@ -87,6 +89,98 @@ router.get('/paymo/timelogs', requireAuth, async (req, res) => {
         console.error(error);
         res.status(500).send(error.toString());
     }
+});
+
+router.get('/paymo/timelogs/:weekNumber', requireAuth, async (req, res) => {
+	// todo for lazzar, let's make this flexible to get the hours worked on a specific week
+});
+
+// SEND TO GOOGLE SHEETS
+router.get('/google/example', requireAuth, async (req, res) => {
+	try {
+		const credentials = JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii'));
+		const auth = new GoogleAuth({
+			credentials: credentials,
+			scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+		});
+		const client = await auth.getClient();
+		const sheets = google.sheets({ version: 'v4', auth: client });
+
+		const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID; // ID of the spreadsheet to update
+		const range = 'Sheet1!A1'; // Range to update
+
+		const request = {
+			spreadsheetId,
+			range,
+			valueInputOption: 'RAW',
+			resource: {
+				values: [['For innovation, quality and good karma. Webnorth!']]
+			}
+		};
+
+		const response = await sheets.spreadsheets.values.update(request);
+		res.json(response.data);
+	} catch (error) {
+		console.error(error);
+		res.status(500).send(error.toString());
+	}
+});
+
+// SEND TO SLACK CHANNEL
+router.get('/slack', async (req, res) => {
+	try {
+		const response = await axios.post(process.env.SLACK_WEBHOOK_URL, {
+			text: 'Hello from Netlify Functions!',
+		});
+		res.json(response.data);
+	} catch (error) {
+		console.error(error);
+		res.status(500).send(error.toString());
+	}
+});
+
+// HELPER API ROUTES
+
+// get current week number
+router.get('/current-week', async (req, res) => {
+
+	function getWeekNumber(d) {
+		d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+		d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+		const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+		return weekNo;
+	}
+
+
+	const today = new Date();
+	const weekNumber = getWeekNumber(today);
+	res.json({ weekNumber });
+});
+
+// get hours worked on specific week and specific board
+router.get('/boards/:boardId/:weekNumber/time-spent', async (req, res) => {
+	const { boardId, weekNumber } = req.params;
+
+	// todo for lazzar, let's make this flexible to get the hours worked on a specific week and board
+})
+
+// todo for lazzar, check google sheets example and implement a real example to get the hours worked on a specific week and board. for starters 2 columns are fine. one for week number and one for hours worked.
+
+router.get('/last-week-hours-daily-send-to-sheets', async (req, res) => {
+
+	// last week get current week - 1
+	axios.get('/current-week').then((response) => {
+		const lastWeek = response.data.weekNumber - 1;
+		const boardId = 'your-board-id'; // todo for lazzar
+		// get hours worked on specific week and specific board
+		axios.get(`/boards/${boardId}/${lastWeek}/time-spent`).then((response) => {
+			res.json(response.data);
+		})
+	})
+
+	// send to google sheets
+
 });
 
 api.use("/api/", router);
