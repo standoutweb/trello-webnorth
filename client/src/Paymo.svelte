@@ -7,12 +7,16 @@
     let timelogEntries = [];
     let totalTime = 0;
     let netlify_url = process.env.API_URL
-    let daily_cards = [];
+    let daily_cards_arr = [];
+    let gapiLoaded = false;
+    const API_KEY = process.env.GOOGLE_API_KEY;
+    const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
 
     onMount(async () => {
-        await paymoEntries();
         await loadCards();
-        await choose_only_logs_from_daily_cards();
+        await paymoEntries();
+        await googleConnect();
     });
 
     async function makeAuthRequest(url) {
@@ -30,7 +34,7 @@
     }
 
     async function paymoEntries() {
-        const url = `${netlify_url}/paymo/timelogs`;
+        const url = `${netlify_url}/timelogs`;
         try {
             const response = await makeAuthRequest(url);
             let entries = response;
@@ -43,8 +47,10 @@
             entries = entries.map(entry => {
                 const match = entry.description.match(regex);
                 entry.description = match[1];
-                return entry;
-            });
+                if (daily_cards_arr.some(card => card === entry.description)) {
+                    return entry;
+                }
+            }).filter(entry => entry !== undefined);
 
             entries.sort((a, b) => a.description.localeCompare(b.description));
 
@@ -90,18 +96,82 @@
         return `${day}.${month}.${year} - ${hours}:${minutes}`;
     }
 
-    async function loadCards(boardId) {
+    async function loadCards() {
         const url = `${netlify_url}/boards/61483390071f5084f7480f0a/cards`;
         try {
-            daily_cards = await makeAuthRequest(url);
-            console.log(cards);
+            const daily_cards = await makeAuthRequest(url);
+            daily_cards_arr = daily_cards.map(card => card.shortLink);
+            return daily_cards_arr;
         } catch (error) {
             console.error('Error loading cards:', error);
         }
     }
 
-    async function choose_only_logs_from_daily_cards() {
-        // Filter only logs from daily cards
+    async function googleConnect() {
+        const timeDuration = minutesToHours(secondsToMinutes(totalTime));
+        const values = [
+            ["Week #", timeDuration],
+        ];
+       updateValues(spreadsheetId, 'USER_ENTERED', values)
+    }
+
+    function getExistingDataRange(spreadsheetId) {
+        return gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: spreadsheetId,
+            range: `A1:ZZZ`
+        }).then((response) => {
+            var values = response.result.values;
+            if (!values || !values.length) {
+                return null; // No data found
+            }
+            // Find the range of cells with data
+            var startRow = 1;
+            var startColumn = 1;
+            var endRow = values.length;
+            var endColumn = values[0].length;
+            // Trim empty rows at the end
+            while (endRow > startRow && !values[endRow - 1].some(cell => cell.trim() !== '')) {
+                endRow--;
+            }
+            // Trim empty columns at the end
+            while (endColumn > startColumn && !values.some(row => row[endColumn - 1].trim() !== '')) {
+                endColumn--;
+            }
+            // Calculate the range
+            var startColumnLetter = String.fromCharCode(65 + startColumn - 1); // A=65 in ASCII
+            var endColumnLetter = String.fromCharCode(65 + endColumn - 1);
+            var range = `${startColumnLetter}${startRow}:${endColumnLetter}${endRow}`;
+            return range;
+        });
+    }
+
+    async function updateValues(spreadsheetId, valueInputOption, values) {
+        // Get existing data range
+        let existingDataRange = await getExistingDataRange(spreadsheetId);
+        if (!existingDataRange) {
+            console.error('Failed to get existing data range.');
+            return;
+        }
+
+        // Calculate new range
+        var numRows = values.length;
+        var startRow = parseInt(existingDataRange.split(':')[1].match(/\d+/)[0]);
+        var startDataColumn = existingDataRange.split(':')[0].match(/[A-Z]+/)[0];
+        var endDataColumn = existingDataRange.split(':')[1].match(/[A-Z]+/)[0];
+        var newRange = `${startDataColumn}${startRow + 1}:${endDataColumn}${startRow + numRows}`;
+        // Update values
+        var body = {
+            values: values
+        };
+        gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId: spreadsheetId,
+            range: newRange,
+            valueInputOption: valueInputOption,
+            resource: body
+        }).then((response) => {
+            var result = response.result;
+            alert(`${result.updatedCells} cells updated.`);
+        });
     }
 
 </script>
@@ -109,14 +179,16 @@
 <main>
     {minutesToHours(secondsToMinutes(totalTime))} Hours Total (Time logged with trello link inside)
     {#each Object.entries(timelogEntries) as [cardId, entries]}
-        <h2>Card ID: {cardId}</h2>
-        {#each entries as entry}
-            <div>
-                {secondsToMinutes(entry.duration)} -
-                <a target="_blank" href="{entry.trelloLink}">{cardId}</a> -
-                {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)}
-            </div>
-        {/each}
+        {#if daily_cards_arr.some(card => card === cardId)}
+            <h2>Card ID: {cardId}</h2>
+            {#each entries as entry}
+                <div>
+                    {secondsToMinutes(entry.duration)} -
+                    <a target="_blank" href="{entry.trelloLink}">{cardId}</a> -
+                    {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)}
+                </div>
+            {/each}
+        {/if}
     {/each}
 </main>
 <style>

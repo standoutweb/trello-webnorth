@@ -88,7 +88,21 @@
             console.error('Error refreshing boards:', error);
         }
     }
-
+    function handleRefreshBoards(event) {
+        if (event.key === 'Enter') {
+            refreshBoards();
+        }
+    }
+    function handleNetlifyIdentity(event) {
+        if (event.key === 'Enter') {
+            netlifyIdentity.open();
+        }
+    }
+    function handleKeydown(event, board) {
+        if (event.key === 'Enter') {
+            handleBoardClick(board);
+        }
+    }
     function handleBoardClick(board) {
         selectedBoard = board;
         loadCards(board.id);
@@ -131,12 +145,12 @@
         <span>Last refreshed: {convertDate(lastRefreshed)}</span>
     {/if}
     <div class="pt-10 pb-10 d-flex gap-20">
-        <svg on:click={refreshBoards} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30px" height="30px"
+        <svg on:click={() => refreshBoards} on:keydown={(event) => handleRefreshBoards(event)} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30px" height="30px"
              class="pointer">
             <path d="M 15 3 C 12.031398 3 9.3028202 4.0834384 7.2070312 5.875 A 1.0001 1.0001 0 1 0 8.5058594 7.3945312 C 10.25407 5.9000929 12.516602 5 15 5 C 20.19656 5 24.450989 8.9379267 24.951172 14 L 22 14 L 26 20 L 30 14 L 26.949219 14 C 26.437925 7.8516588 21.277839 3 15 3 z M 4 10 L 0 16 L 3.0507812 16 C 3.562075 22.148341 8.7221607 27 15 27 C 17.968602 27 20.69718 25.916562 22.792969 24.125 A 1.0001 1.0001 0 1 0 21.494141 22.605469 C 19.74593 24.099907 17.483398 25 15 25 C 9.80344 25 5.5490109 21.062074 5.0488281 16 L 8 16 L 4 10 z"></path>
         </svg>
 
-        <svg on:click={() => netlifyIdentity.open()} xmlns="http://www.w3.org/2000/svg" class="svg-icon pointer"
+        <svg on:click={() => netlifyIdentity.open()} on:keydown={(event) => handleNetlifyIdentity(event)} xmlns="http://www.w3.org/2000/svg" class="svg-icon pointer"
              style="width: 30px; height: 30px;vertical-align: middle;fill: currentColor;overflow: hidden;"
              viewBox="0 0 1024 1024" version="1.1">
             <path d="M843.282963 870.115556c-8.438519-140.515556-104.296296-257.422222-233.908148-297.14963C687.881481 536.272593 742.4 456.533333 742.4 364.088889c0-127.241481-103.158519-230.4-230.4-230.4S281.6 236.847407 281.6 364.088889c0 92.444444 54.518519 172.183704 133.12 208.877037-129.611852 39.727407-225.46963 156.634074-233.908148 297.14963-0.663704 10.903704 7.964444 20.195556 18.962963 20.195556l0 0c9.955556 0 18.299259-7.774815 18.962963-17.73037C227.745185 718.506667 355.65037 596.385185 512 596.385185s284.254815 122.121481 293.357037 276.195556c0.568889 9.955556 8.912593 17.73037 18.962963 17.73037C835.318519 890.311111 843.946667 881.019259 843.282963 870.115556zM319.525926 364.088889c0-106.287407 86.186667-192.474074 192.474074-192.474074s192.474074 86.186667 192.474074 192.474074c0 106.287407-86.186667 192.474074-192.474074 192.474074S319.525926 470.376296 319.525926 364.088889z"/>
@@ -151,18 +165,18 @@
 
 {#each boards as board}
     <div class="d-flex gap-20 justify-between bb-1 p-10">
-        <a on:click={() => handleBoardClick(board)} target="_blank">{board.name}</a>
+        <a href={'#'} on:click={() => handleBoardClick(board)} on:keydown={(event) => handleKeydown(event, board)} target="_blank">{board.name}</a>
         <div class="text-right d-flex shrink-0">{convertDate(board.dateLastActivity)}</div>
     </div>
 {/each}
 
 {#if selectedBoard}
     <div class="drawer cards">
-        <a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeDrawer}>Close</a>
+        <a href={'#'} class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeDrawer} on:keydown={closeDrawer}>Close</a>
         <h3>{selectedBoard.name} Cards</h3>
         {#each cards as card}
             <div class="pt-10 pb-10 bb-1 d-flex direction-column">
-                <a class="word-break" on:click={handleCardClick(card)} target="_blank">{card.name}</a>
+                <a href={'#'} class="word-break" on:click={handleCardClick(card)} on:keydown={handleCardClick(card)} target="_blank">{card.name}</a>
                 <span class="text-small">Latest Activity: {convertDate(card.dateLastActivity)}</span>
             </div>
         {/each}
@@ -171,7 +185,7 @@
 
 {#if selectedCard}
     <div class="drawer actions">
-        <a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeCardDrawer}>← Back</a>
+        <a href={'#'} class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeCardDrawer} on:keydown={closeCardDrawer}>← Back</a>
 
         <a class="word-break" href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
         <span class="card-description">{selectedCard.desc}</span>

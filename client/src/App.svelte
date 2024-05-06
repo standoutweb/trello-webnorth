@@ -1,16 +1,19 @@
 <script>
     import {Router, Link, Route} from 'svelte-routing';
+	import Google from "./Google.svelte";
     import BoardList from './BoardList.svelte';
 	import Paymo from './Paymo.svelte';
 </script>
 
+
+
 <Router>
 	<nav>
-		<Link to="/paymo/">Paymo</Link>
+		<Link to="/">Paymo</Link>
 	</nav>
 
 	<main>
-		<Route path="/paymo/" component="{Paymo}" />
+		<Route path="/" component="{Paymo}" />
 	</main>
 </Router>
 
