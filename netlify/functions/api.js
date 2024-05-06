@@ -214,7 +214,8 @@ router.get('/boards/:boardId/:weekNumber/time-spent', async (req, res) => {
             }
         });
 
-        axios.get(`${process.env.PRODUCTION_SERVER_URL}/boards/${boardId}/cards`).then((response) => {
+        axios.get(`${process.env.API_URL
+}/boards/${boardId}/cards`).then((response) => {
             const shortLinks = response.data.map(item => item.shortLink);
             const filteredEntries = entries.data.entries.filter(entry =>
                 shortLinks.some(shortLink => entry.description.includes(shortLink))
@@ -232,12 +233,15 @@ router.get('/boards/:boardId/:weekNumber/time-spent', async (req, res) => {
 
 router.get('/last-week-hours-daily-send-to-sheets', async (req, res) => {
 
-	axios.get(`${process.env.PRODUCTION_SERVER_URL}/current-week`).then((response) => {
+	axios.get(`${process.env.API_URL
+}/current-week`).then((response) => {
 		const lastWeek = response.data.weekNumber - 1;
 		const boardId = process.env.DAILY_BOARD_ID;
-		axios.get(`${process.env.PRODUCTION_SERVER_URL}/boards/${boardId}/${lastWeek}/time-spent`).then((response) => {
+		axios.get(`${process.env.API_URL
+}/boards/${boardId}/${lastWeek}/time-spent`).then((response) => {
             const timeInSeconds = response.data;
-            axios.get(`${process.env.PRODUCTION_SERVER_URL}/google/${lastWeek}/${timeInSeconds}/`).then((response) => {
+            axios.get(`${process.env.API_URL
+}/google/${lastWeek}/${timeInSeconds}/`).then((response) => {
                 res.json(response.data);
             });
 		})
