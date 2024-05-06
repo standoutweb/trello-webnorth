@@ -96,7 +96,11 @@ router.get('/paymo/timelogs/:weekNumber', requireAuth, async (req, res) => {
 });
 
 // SEND TO GOOGLE SHEETS
-router.get('/google/example', requireAuth, async (req, res) => {
+router.get('/google/:weekNumber/:timeInSeconds', requireAuth, async (req, res) => {
+    const timeInSeconds = req.params.timeInSeconds;
+    const weekNumber = req.params.weekNumber;
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
 	try {
 		const credentials = JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii'));
 		const auth = new GoogleAuth({
@@ -106,17 +110,44 @@ router.get('/google/example', requireAuth, async (req, res) => {
 		const client = await auth.getClient();
 		const sheets = google.sheets({ version: 'v4', auth: client });
 
-		const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID; // ID of the spreadsheet to update
-		const range = 'Sheet1!A1'; // Range to update
+		const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+		let range = 'Sheet1!A1:ZZZ';
+        let dataResponse = await sheets.spreadsheets.values.get({spreadsheetId, range});
+        let values = dataResponse.data.values;
 
-		const request = {
-			spreadsheetId,
-			range,
-			valueInputOption: 'RAW',
-			resource: {
-				values: [['For innovation, quality and good karma. Webnorth!']]
-			}
-		};
+        if (!values || !values.length) {
+            range = `Sheet1!A1:B1`;
+            const titleRequest = {
+                spreadsheetId,
+                range,
+                valueInputOption: 'RAW',
+                resource: {
+                    values: [[`Week #`, `Time`]]
+                }
+            };
+            const titleResponse = await sheets.spreadsheets.values.update(titleRequest);
+
+            dataResponse = await sheets.spreadsheets.values.get({spreadsheetId, range});
+            values = dataResponse.data.values;
+        }
+
+        let startRow = 1;
+        let endRow = values.length;
+        while (endRow > startRow && !values[endRow - 1].some(cell => cell.trim() !== '')) {
+            endRow--;
+        }
+
+        let nextEmptyRow = endRow + 1;
+        range = `Sheet1!A${nextEmptyRow}`;
+        const request = {
+            spreadsheetId,
+            range,
+            valueInputOption: 'RAW',
+            resource: {
+                values: [[`Week ${weekNumber}`, `${hours} hours ${minutes} minutes`]]
+            }
+        };
+
 
 		const response = await sheets.spreadsheets.values.update(request);
 		res.json(response.data);
@@ -161,26 +192,56 @@ router.get('/current-week', async (req, res) => {
 // get hours worked on specific week and specific board
 router.get('/boards/:boardId/:weekNumber/time-spent', async (req, res) => {
 	const { boardId, weekNumber } = req.params;
+    const date = new Date(new Date().getFullYear(), 0, 1);
+    date.setDate(weekNumber * 7);
+    const lastWeekEnd = new Date(date);
+    const lastWeekStart = new Date(lastWeekEnd);
 
-	// todo for lazzar, let's make this flexible to get the hours worked on a specific week and board
+    lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 6);
+
+    const startDate = lastWeekStart.toISOString().split('T')[0];
+    const endDate = lastWeekEnd.toISOString().split('T')[0];
+    const username = process.env.PAYMO_API_KEY;
+    const password = 'random'; // Use a random password as specified
+    const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+
+    try {
+        const entries = await axios.get(`${PAYMO_API_BASE_URL}/entries`, {
+            headers: { Authorization: basicAuth },
+            params: {
+                where: `time_interval in ("${startDate}","${endDate}")`
+            }
+        });
+
+        axios.get(`${process.env.LOCAL_SERVER_URL}/boards/${boardId}/cards`).then((response) => {
+            const shortLinks = response.data.map(item => item.shortLink);
+            const filteredEntries = entries.data.entries.filter(entry =>
+                shortLinks.some(shortLink => entry.description.includes(shortLink))
+            );
+            const totalDuration = filteredEntries.reduce((total, entry) => total + entry.duration, 0);
+            res.json(totalDuration);
+
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error.toString());
+    }
 })
-
-// todo for lazzar, check google sheets example and implement a real example to get the hours worked on a specific week and board. for starters 2 columns are fine. one for week number and one for hours worked.
 
 router.get('/last-week-hours-daily-send-to-sheets', async (req, res) => {
 
-	// last week get current week - 1
-	axios.get('/current-week').then((response) => {
+	axios.get(`${process.env.LOCAL_SERVER_URL}/current-week`).then((response) => {
 		const lastWeek = response.data.weekNumber - 1;
-		const boardId = 'your-board-id'; // todo for lazzar
-		// get hours worked on specific week and specific board
-		axios.get(`/boards/${boardId}/${lastWeek}/time-spent`).then((response) => {
-			res.json(response.data);
+		const boardId = process.env.DAILY_BOARD_ID;
+		axios.get(`${process.env.LOCAL_SERVER_URL}/boards/${boardId}/${lastWeek}/time-spent`).then((response) => {
+            const timeInSeconds = response.data;
+            axios.get(`${process.env.LOCAL_SERVER_URL}/google/${lastWeek}/${timeInSeconds}/`).then((response) => {
+                res.json(response.data);
+            });
 		})
 	})
-
-	// send to google sheets
-
 });
 
 api.use("/api/", router);
