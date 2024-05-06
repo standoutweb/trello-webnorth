@@ -26,7 +26,14 @@ const requireAuth = (req, res, next) => {
     if (!req.context || !req.context.clientContext || !req.context.clientContext.user) {
         return res.status(401).send('Unauthorized');
     }
-    next();
+
+	const authHeader = req.headers.authorization;
+	if (!authHeader || authHeader !== `Bearer ${process.env.SECRET_QUERY_PARAM_VALUE}`) {
+		return res.status(401).send('Unauthorized');
+	}
+
+
+	next();
 };
 
 // Existing Trello integration routes
@@ -231,17 +238,31 @@ router.get('/boards/:boardId/:weekNumber/time-spent', async (req, res) => {
 })
 
 router.get('/last-week-hours-daily-send-to-sheets', async (req, res) => {
+	const secretToken = process.env.SECRET_QUERY_PARAM_VALUE; // Make sure to store your secret token in your environment variables
 
-	axios.get(`${process.env.API_URL}/current-week`).then((response) => {
+	// Check if the secret query parameter matches the SECRET_KEY
+	if (req.query.secret !== process.env.SECRET_KEY) {
+		return res.status(401).send('Unauthorized');
+	}
+
+	axios.get(`${process.env.API_URL}/current-week`, {
+		headers: { 'Authorization': `Bearer ${secretToken}` }
+	}).then((response) => {
 		const lastWeek = response.data.weekNumber - 1;
 		const boardId = process.env.DAILY_BOARD_ID;
-		axios.get(`${process.env.API_URL}/boards/${boardId}/${lastWeek}/time-spent`).then((response) => {
-            const timeInSeconds = response.data;
-            axios.get(`${process.env.API_URL}/google/${lastWeek}/${timeInSeconds}/`).then((response) => {
-                res.json(response.data);
-            });
-		})
-	})
+
+		axios.get(`${process.env.API_URL}/boards/${boardId}/${lastWeek}/time-spent`, {
+			headers: { 'Authorization': `Bearer ${secretToken}` }
+		}).then((response) => {
+			const timeInSeconds = response.data;
+
+			axios.get(`${process.env.API_URL}/google/${lastWeek}/${timeInSeconds}/`, {
+				headers: { 'Authorization': `Bearer ${secretToken}` }
+			}).then((response) => {
+				res.json(response.data);
+			});
+		});
+	});
 });
 
 api.use("/api/", router);
