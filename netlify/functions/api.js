@@ -137,10 +137,8 @@ router.get( '/paymo/timelog/:weekNumber', requireAuth, async ( req, res ) => {
 		const boardId = process.env.DAILY_BOARD_ID;
 		const weekNumber = req.params.weekNumber;
 		const response = await axios.get(`${process.env.API_URL}/boards/${boardId}/${weekNumber}/time-spent`);
-		console.log(response.data)
 		const timeInSeconds = response.data;
 		const { hours, minutes } = convertSecondsToHoursMinutes(timeInSeconds);
-		console.log(`Week ${weekNumber}`, `${hours} hours ${minutes} minutes`);
 		res.json([`Week ${weekNumber}`, `${hours} hours ${minutes} minutes`]);
 	} catch (error) {
 		console.error(`Error fetching data for week: ${weekNumber}`, error);
@@ -236,7 +234,6 @@ router.get( '/slack', async ( req, res ) => {
 router.get( '/boards/:boardId/:weekNumber/time-spent', async ( req, res ) => {
 	const { boardId, weekNumber } = req.params;
 	const { startDate, endDate } = getStartAndEndDate(weekNumber);
-	console.log(startDate, endDate);
 	const username = process.env.PAYMO_API_KEY;
 	const password = 'random'; // Use a random password as specified
 	const basicAuth = 'Basic ' + Buffer.from( username + ':' + password ).toString( 'base64' );
@@ -266,7 +263,7 @@ router.get( '/boards/:boardId/:weekNumber/time-spent', async ( req, res ) => {
 		} ).then( ( response ) => {
 			const shortLinks = response.data.map( item => item.shortLink );
 			const filteredEntries = entries.data.entries.filter( entry =>
-				shortLinks.some( shortLink => entry.description.includes( shortLink ) )
+				entry.description && shortLinks.some( shortLink => entry.description.includes( shortLink ) )
 			);
 			const totalDuration = filteredEntries.reduce( ( total, entry ) => total + entry.duration, 0 );
 			res.json( totalDuration );
