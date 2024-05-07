@@ -21,17 +21,16 @@ function getWeekNumber( d ) {
 }
 
 function getStartAndEndDate(weekNumber) {
-	const date = new Date(new Date().getFullYear(), 0, 1);
-	date.setDate(weekNumber * 7);
-	const lastWeekEnd = new Date(date);
-	const lastWeekStart = new Date(lastWeekEnd);
-
-	lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
-	lastWeekStart.setDate(lastWeekStart.getDate() - 6);
-
-	const startDate = lastWeekStart.toISOString().split('T')[0];
-	const endDate = lastWeekEnd.toISOString().split('T')[0];
-
+	let date = new Date(new Date().getFullYear(), 0, 1);
+	let dayOfWeek = date.getDay();
+	let diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+	let firstMondayOfYear = new Date(date.setDate(diff));
+	firstMondayOfYear.setDate(firstMondayOfYear.getDate() + (weekNumber - 1) * 7 + 1);
+	let startDate = new Date(firstMondayOfYear);
+	let endDate = new Date(startDate);
+	endDate.setDate(endDate.getDate() + 6);
+	startDate = startDate.toISOString().split('T')[0];
+	endDate = endDate.toISOString().split('T')[0];
 	return { startDate, endDate };
 }
 
