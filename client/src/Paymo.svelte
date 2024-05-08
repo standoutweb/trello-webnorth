@@ -86,7 +86,6 @@
         const minutes = String(date.getMinutes()).padStart(2, '0');
         return `${day}.${month}.${year} - ${hours}:${minutes}`;
     }
-
 </script>
 
 <main>
@@ -97,7 +96,7 @@
             <div>
                 {secondsToMinutes(entry.duration)} -
                 <a target="_blank" href="{entry.trelloLink}">{cardId}</a> -
-                {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)}
+                {beautifyDate(entry.startTime)} - {beautifyDate(entry.endTime)} - {entry.userId}
             </div>
         {/each}
     {/each}
