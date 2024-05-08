@@ -31,6 +31,7 @@ const requireAuth = ( req, res, next ) => {
 
 	next();
 };
+
 // get current week number
 function getWeekNumber( d = new Date() ) {
 	d = d || new Date();
@@ -102,21 +103,38 @@ router.get( '/cards/:cardId/actions', requireAuth, async ( req, res ) => {
 router.get( '/paymo/timelogs/:startDate/:endDate', requireAuth, async ( req, res ) => {
 	let { startDate, endDate } = req.params;
 
+	let entries, users;
 	const username = process.env.PAYMO_API_KEY;
 	const password = 'random'; // Use a random password as specified
 	const basicAuth = 'Basic ' + Buffer.from( username + ':' + password ).toString( 'base64' );
 
 	try {
-		const response = await axios.get( `${ PAYMO_API_BASE_URL }/entries`, {
-			headers: { Authorization: basicAuth },
-			params: {
-				where: `time_interval in ("${ startDate }","${ endDate }")`
-			}
+		const [ entries, users ] = await Promise.all( [
+			axios.get( `${ PAYMO_API_BASE_URL }/entries`, {
+				headers: { Authorization: basicAuth },
+				params: {
+					where: `time_interval in ("${ startDate }","${ endDate }")`
+				}
+			} ),
+
+			axios.get( `${ PAYMO_API_BASE_URL }/users`, {
+				headers: { Authorization: basicAuth }
+			} )
+		] )
+
+		const entriesData = entries.data.entries;
+		const usersData = users.data.users;
+
+		const entriesWithUserNames = entriesData.map( entry => {
+			const user = usersData.find( user => user.id === entry.user_id );
+			return { ...entry, user_name: user.name };
 		} );
-		res.json( response.data );
+
+		res.json( entriesWithUserNames );
+
 	} catch ( error ) {
 		console.error( error );
-		res.status( 500 ).send( error.toString() );
+		res.status
 	}
 
 } );
@@ -191,31 +209,31 @@ router.get( '/last-week-hours-daily-send-to-sheets', requireAuth, async ( req, r
 		} );
 	} )
 } );
-router.get('/cards/:cardShortLink/timelogs', requireAuth, async (req, res) => {
+router.get( '/cards/:cardShortLink/timelogs', requireAuth, async ( req, res ) => {
 	try {
 		const cardShortLink = req.params.cardShortLink;
 
 		const today = new Date();
-		const lastThirtyDays = new Date(today.setDate(today.getDate() - 30));
-		lastThirtyDays.setHours(0, 0, 0, 0);
-		const startDate = lastThirtyDays.toISOString().split('T')[0];
-		const endDate = new Date().toISOString().split('T')[0];
+		const lastThirtyDays = new Date( today.setDate( today.getDate() - 30 ) );
+		lastThirtyDays.setHours( 0, 0, 0, 0 );
+		const startDate = lastThirtyDays.toISOString().split( 'T' )[ 0 ];
+		const endDate = new Date().toISOString().split( 'T' )[ 0 ];
 
-		const entries = await axios.get(`${process.env.API_URL}/paymo/timelogs/${startDate}/${endDate}`, {
+		const entries = await axios.get( `${ process.env.API_URL }/paymo/timelogs/${ startDate }/${ endDate }`, {
 			params: {
 				secret: process.env.SECRET_QUERY_PARAM_VALUE,
 			}
-		});
+		} );
 
 		// remove entries that don't have the card short link in the description
 
-		const cardEntries = entries.data.entries.filter(entry => entry.description && includesTrelloLink(entry.description) && entry.description.includes(cardShortLink));
-		res.json(cardEntries);
-	} catch (error) {
-		console.error('Error fetching time logs:', error);
-		res.status(500).json({ error: 'Internal Server Error' });
+		const cardEntries = entries.data.filter( entry => entry.description && includesTrelloLink( entry.description ) && entry.description.includes( cardShortLink ) );
+		res.json( cardEntries );
+	} catch ( error ) {
+		console.error( 'Error fetching time logs:', error );
+		res.status( 500 ).json( { error: 'Internal Server Error' } );
 	}
-});
+} );
 // SEND TO GOOGLE SHEETS
 router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res ) => {
 	const timeInSeconds = req.params.timeInSeconds;

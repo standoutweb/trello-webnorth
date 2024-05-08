@@ -306,7 +306,7 @@
 		{#each timelogEntries as timelog}
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
-				<span class="text-small mb-10">Logged by: {timelog.user_id}</span>
+				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
 				<span class="text-small mb-10">Logged on: { timelog.date } {beautifyDate( timelog.startTime )}
 					- {beautifyDate( timelog.endTime )}</span>
 			</div>
