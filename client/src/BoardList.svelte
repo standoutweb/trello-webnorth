@@ -104,43 +104,52 @@
 		loadCards( board.id );
 	}
 	
+	let lastShortLink = null;  // Variable to store the last processed shortLink
+	
 	async function handleTimeLogSubmit() {
-		const urlRaw = document.getElementById('timelog-url').value;
+		const urlRaw = document.getElementById( 'timelog-url' ).value;
 		
-		if (!urlRaw) {
-			alert('Please enter a Trello URL');
+		if ( ! urlRaw ) {
+			alert( 'Please enter a Trello URL' );
 			return;
 		}
 		
 		// Regular expression to extract the Trello card short link
-		const match = urlRaw.match(/https:\/\/trello\.com\/c\/([a-zA-Z0-9]+)/);
+		const match = urlRaw.match( /https:\/\/trello\.com\/c\/([a-zA-Z0-9]+)/ );
 		
-		if (!match) {
-			alert('Please enter a valid Trello URL');
+		if ( ! match ) {
+			alert( 'Please enter a valid Trello URL' );
 			return;
 		}
 		
-		const shortLink = match[1]; // Capture the short link part of the URL
+		const shortLink = match[ 1 ]; // Capture the short link part of the URL
+		
+		// Check if shortLink has changed since the last submission
+		if ( shortLink !== lastShortLink ) {
+			timelogEntries = [];  // Clear previous timelog entries
+			pagination = 1;       // Reset pagination
+			lastShortLink = shortLink; // Update lastShortLink to the new one
+		}
 		
 		// Assuming netlify_url is defined elsewhere in your script and available here
-		const url = `${netlify_url}/cards/${shortLink}/${pagination}/timelogs`;
+		const url = `${ netlify_url }/cards/${ shortLink }/${ pagination }/timelogs`;
 		
 		try {
 			error = false;
 			loadingState = true;
 			
-			const newTimelogEntries = await makeAuthRequest(url);
-			newTimelogEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+			const newTimelogEntries = await makeAuthRequest( url );
+			newTimelogEntries.sort( ( a, b ) => new Date( b.date ) - new Date( a.date ) );
 			
 			// Append new entries to existing ones
-			timelogEntries = [...timelogEntries, ...newTimelogEntries];
+			timelogEntries = [ ...timelogEntries, ...newTimelogEntries ];
 			
-			totalLoggedTime = timelogEntries.reduce((acc, entry) => acc + entry.duration, 0);
+			totalLoggedTime = timelogEntries.reduce( ( acc, entry ) => acc + entry.duration, 0 );
 			
 			loadingState = false;
 			pagination++;  // Increment pagination to load next set of data next time
-		} catch (error) {
-			console.error('Error loading timelog:', error);
+		} catch ( error ) {
+			console.error( 'Error loading timelog:', error );
 			loadingState = false;
 			error = true;
 		}
@@ -281,13 +290,23 @@
 		<a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={handleTimelogCheck}>Close</a>
 		<h3>Timelog</h3>
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-		<span class="text-small mb-10">Use this tool to check the logged time based on cards. Simply paste the card url and check the timelog</span>
+			<span class="text-small mb-10">Use this tool to check the logged time based on cards. Simply paste the card url and check the timelog</span>
 		</div>
 		
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 			<input type="text" id="timelog-url" placeholder="Paste the card url here"/>
-			<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check Last 30 Days</button>
+			<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check Last 30
+				Days
+			</button>
 		</div>
+		
+		{#each timelogEntries as timelog}
+			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
+				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
+				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
+				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
+			</div>
+		{/each}
 		
 		{#if loadingState}
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
@@ -301,24 +320,12 @@
 			</div>
 		{/if}
 		
-		{#if error}
-			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-				<span class="text-small">No timelog entries found</span>
-			</div>
-		{/if}
-		
-		{#if totalLoggedTime > 0}
-			{minutesToHours( secondsToMinutes( totalLoggedTime ) )} Hours Total (Time logged with trello link inside)
-		{/if}
-		{#each timelogEntries as timelog}
-			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
-				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
-				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
-			</div>
-		{/each}
-		
 		{#if timelogEntries.length > 0}
+			{#if totalLoggedTime > 0}
+				<span class="pt-10 pb-10 text-small">{minutesToHours( secondsToMinutes( totalLoggedTime ) )} hours logged in total. Load more to see if there are more entries
+				</span>
+			{/if}
+			
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 				<button class="btn btn-primary" on:click={paginationPlus}>Load previous 30 days</button>
 			</div>
