@@ -231,7 +231,7 @@ router.get( '/slack', async ( req, res ) => {
 	}).then( ( response ) => {
 		const timeInSeconds = response.data;
 		const { hours, minutes } = convertSecondsToHoursMinutes( timeInSeconds );
-		const message = `Last week, we worked ${ hours } hours and ${ minutes } minutes on the Daily board.`;
+		const message = `Last week (W${weekNumber}), we worked ${ hours } hours and ${ minutes } minutes on the Daily board.`;
 		try {
 			axios.post( process.env.SLACK_WEBHOOK_URL, {
 				text: message,
