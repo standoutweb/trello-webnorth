@@ -212,6 +212,14 @@ router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res 
 
 // SEND TO SLACK CHANNEL
 router.get( '/slack', async ( req, res ) => {
+	// to do convert this to a function as it is used in multiple places
+	const secretToken = process.env.SECRET_QUERY_PARAM_VALUE; // Make sure to store your secret token in your environment variables
+
+	if ( ! req.query.secret || req.query.secret !== secretToken ) {
+		return res.status( 401 ).send( 'Unauthorized' );
+	}
+
+
 	const today = new Date();
 	const weekNumber = getWeekNumber( today );
 	const lastWeek = weekNumber - 1;
@@ -223,17 +231,17 @@ router.get( '/slack', async ( req, res ) => {
 	}).then( ( response ) => {
 		const timeInSeconds = response.data;
 		const { hours, minutes } = convertSecondsToHoursMinutes( timeInSeconds );
-		res.json( [ `Week ${ lastWeek }`, `${ hours } hours ${ minutes } minutes` ] );
+		const message = `Last week, we worked ${ hours } hours and ${ minutes } minutes on the Daily board.`;
+		try {
+			axios.post( process.env.SLACK_WEBHOOK_URL, {
+				text: message,
+			} );
+			res.json( message );
+		} catch ( error ) {
+			console.error( error );
+			res.status( 500 ).send( error.toString() );
+		}
 	})
-	/*try {
-		const response = await axios.post( process.env.SLACK_WEBHOOK_URL, {
-			text: 'Hello from Netlify Functions!',
-		} );
-		res.json( response.data );
-	} catch ( error ) {
-		console.error( error );
-		res.status( 500 ).send( error.toString() );
-	}*/
 } );
 
 // HELPER API ROUTES
