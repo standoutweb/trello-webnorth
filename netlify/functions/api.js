@@ -136,7 +136,11 @@ router.get( '/paymo/timelog/:weekNumber', requireAuth, async ( req, res ) => {
 	try {
 		const boardId = process.env.DAILY_BOARD_ID;
 		const weekNumber = req.params.weekNumber;
-		const response = await axios.get(`${process.env.API_URL}/boards/${boardId}/${weekNumber}/time-spent`);
+		const response = await axios.get(`${process.env.API_URL}/boards/${boardId}/${weekNumber}/time-spent`, {
+			params: {
+				secret: process.env.SECRET_QUERY_PARAM_VALUE
+			}
+		});
 		const timeInSeconds = response.data;
 		const { hours, minutes } = convertSecondsToHoursMinutes(timeInSeconds);
 		res.json([`Week ${weekNumber}`, `${hours} hours ${minutes} minutes`]);
@@ -212,7 +216,11 @@ router.get( '/slack', async ( req, res ) => {
 	const weekNumber = getWeekNumber( today );
 	const lastWeek = weekNumber - 1;
 	const boardId = process.env.DAILY_BOARD_ID;
-	axios.get( `${ process.env.API_URL }/boards/${ boardId }/${ lastWeek }/time-spent`).then( ( response ) => {
+	axios.get( `${ process.env.API_URL }/boards/${ boardId }/${ lastWeek }/time-spent`, {
+		params: {
+			secret: process.env.SECRET_QUERY_PARAM_VALUE
+		}
+	}).then( ( response ) => {
 		const timeInSeconds = response.data;
 		const { hours, minutes } = convertSecondsToHoursMinutes( timeInSeconds );
 		res.json( [ `Week ${ lastWeek }`, `${ hours } hours ${ minutes } minutes` ] );
