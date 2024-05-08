@@ -214,7 +214,7 @@ router.get( '/cards/:cardShortLink/timelogs', requireAuth, async ( req, res ) =>
 		const cardShortLink = req.params.cardShortLink;
 
 		const today = new Date();
-		const lastThirtyDays = new Date( today.setDate( today.getDate() - 30 ) );
+		const lastThirtyDays = new Date( today.setDate( today.getDate() - 60 ) );
 		lastThirtyDays.setHours( 0, 0, 0, 0 );
 		const startDate = lastThirtyDays.toISOString().split( 'T' )[ 0 ];
 		const endDate = new Date().toISOString().split( 'T' )[ 0 ];
