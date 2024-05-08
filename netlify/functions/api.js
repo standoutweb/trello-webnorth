@@ -20,17 +20,17 @@ function getWeekNumber( d ) {
 	return weekNo;
 }
 
-function getStartAndEndDate(weekNumber) {
-	let date = new Date(new Date().getFullYear(), 0, 1);
+function getStartAndEndDate( weekNumber ) {
+	let date = new Date( new Date().getFullYear(), 0, 1 );
 	let dayOfWeek = date.getDay();
-	let diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-	let firstMondayOfYear = new Date(date.setDate(diff));
-	firstMondayOfYear.setDate(firstMondayOfYear.getDate() + (weekNumber - 1) * 7 + 1);
-	let startDate = new Date(firstMondayOfYear);
-	let endDate = new Date(startDate);
-	endDate.setDate(endDate.getDate() + 6);
-	startDate = startDate.toISOString().split('T')[0];
-	endDate = endDate.toISOString().split('T')[0];
+	let diff = date.getDate() - dayOfWeek + ( dayOfWeek === 0 ? -6 : 1 );
+	let firstMondayOfYear = new Date( date.setDate( diff ) );
+	firstMondayOfYear.setDate( firstMondayOfYear.getDate() + ( weekNumber - 1 ) * 7 + 1 );
+	let startDate = new Date( firstMondayOfYear );
+	let endDate = new Date( startDate );
+	endDate.setDate( endDate.getDate() + 6 );
+	startDate = startDate.toISOString().split( 'T' )[ 0 ];
+	endDate = endDate.toISOString().split( 'T' )[ 0 ];
 	return { startDate, endDate };
 }
 
@@ -41,6 +41,22 @@ function convertSecondsToHoursMinutes( seconds ) {
 	return { hours, minutes };
 }
 
+function convertSecondsToMinutes( seconds ) {
+	return seconds / 60;
+}
+
+function convertMinutesToHours( minutes ) {
+	return minutes / 60;
+}
+
+function includesTrelloLink( description ) {
+	const trelloLinkRegex = /trello.com\/c\/[a-zA-Z0-9]+/g;
+	return trelloLinkRegex.test( description );
+}
+
+function cardMatchesBoardId( card, boardId ) {
+	return card.idBoard === boardId;
+}
 
 router.use( ( req, res, next ) => {
 	res.header( 'Access-Control-Allow-Origin', 'http://localhost:3000' ); // Or '*' for any origin
@@ -132,29 +148,37 @@ router.get( '/paymo/timelogs', requireAuth, async ( req, res ) => {
 	}
 } );
 
-router.get( '/paymo/timelog/:weekNumber', requireAuth, async ( req, res ) => {
+/*
+* Get time logs for a specific week number
+*/
+
+router.get( '/paymo/timelogs/:weekNumber', requireAuth, async ( req, res ) => {
+	const weekNumber = req.params.weekNumber;
+	const { startDate, endDate } = getStartAndEndDate( weekNumber );
+	const username = process.env.PAYMO_API_KEY;
+	const password = 'random'; // Use a random password as specified
+	const basicAuth = 'Basic ' + Buffer.from( username + ':' + password ).toString( 'base64' );
+
 	try {
-		const boardId = process.env.DAILY_BOARD_ID;
-		const weekNumber = req.params.weekNumber;
-		const response = await axios.get(`${process.env.API_URL}/boards/${boardId}/${weekNumber}/time-spent`, {
+		const response = await axios.get( `${ PAYMO_API_BASE_URL }/entries`, {
+			headers: { Authorization: basicAuth },
 			params: {
-				secret: process.env.SECRET_QUERY_PARAM_VALUE
+				where: `time_interval in ("${ startDate }","${ endDate }")`
 			}
-		});
-		const timeInSeconds = response.data;
-		const { hours, minutes } = convertSecondsToHoursMinutes(timeInSeconds);
-		res.json([`Week ${weekNumber}`, `${hours} hours ${minutes} minutes`]);
-	} catch (error) {
-		console.error(`Error fetching data for week: ${weekNumber}`, error);
-		res.status(500).send(`Error fetching data for week: ${weekNumber}: ${error.toString()}`);
+		} );
+		res.json( response.data );
+	} catch ( error ) {
+		console.error( error );
+		res.status( 500 ).send( error.toString() );
 	}
-});
+} );
 
 // SEND TO GOOGLE SHEETS
 router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res ) => {
 	const timeInSeconds = req.params.timeInSeconds;
 	const weekNumber = req.params.weekNumber;
-	const { hours, minutes } = convertSecondsToHoursMinutes( timeInSeconds );
+	const minutes = convertSecondsToMinutes( timeInSeconds );
+	const hours = convertMinutesToHours( minutes );
 	try {
 		const credentials = JSON.parse( Buffer.from( process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64' ).toString( 'ascii' ) );
 		const auth = new GoogleAuth( {
@@ -198,7 +222,7 @@ router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res 
 			range,
 			valueInputOption: 'RAW',
 			resource: {
-				values: [ [ `Week ${ weekNumber }`, `${ hours } hours ${ minutes } minutes` ] ]
+				values: [ [ `Week ${ weekNumber }`, `${ hours }` ] ]
 			}
 		};
 
@@ -228,10 +252,11 @@ router.get( '/slack', async ( req, res ) => {
 		params: {
 			secret: process.env.SECRET_QUERY_PARAM_VALUE
 		}
-	}).then( async ( response ) => {
+	} ).then( async ( response ) => {
 		const timeInSeconds = response.data;
-		const { hours, minutes } = convertSecondsToHoursMinutes( timeInSeconds );
-		const message = `Week ${ lastWeek }, we worked ${ hours } hours and ${ minutes } minutes on the Daily board.`;
+		const minutes = convertSecondsToMinutes( timeInSeconds );
+		const hours = convertMinutesToHours( minutes );
+		const message = `Week ${ lastWeek }, ${ hours } hours matched.`;
 		try {
 			await axios.post( process.env.SLACK_WEBHOOK_URL, {
 				text: message,
@@ -241,7 +266,7 @@ router.get( '/slack', async ( req, res ) => {
 			console.error( error );
 			res.status( 500 ).send( error.toString() );
 		}
-	})
+	} )
 } );
 
 // HELPER API ROUTES
@@ -249,50 +274,50 @@ router.get( '/slack', async ( req, res ) => {
 // get hours worked on specific week and specific board
 router.get( '/boards/:boardId/:weekNumber/time-spent', async ( req, res ) => {
 	const { boardId, weekNumber } = req.params;
-	const { startDate, endDate } = getStartAndEndDate(weekNumber);
-	const username = process.env.PAYMO_API_KEY;
-	const password = 'random'; // Use a random password as specified
-	const basicAuth = 'Basic ' + Buffer.from( username + ':' + password ).toString( 'base64' );
+	const { startDate, endDate } = getStartAndEndDate( weekNumber );
+
+	let secretToken = req.query.secret === process.env.SECRET_QUERY_PARAM_VALUE ? process.env.SECRET_QUERY_PARAM_VALUE : null;
 
 	try {
-		let secretToken
-		// check if params include secret, if not continue with normal auth
-		if ( req.query.secret === process.env.SECRET_QUERY_PARAM_VALUE ) {
-			secretToken = process.env.SECRET_QUERY_PARAM_VALUE; // Make sure to store your secret token in your environment variables
-			console.log( 'secret passed to /boards/:boardId/:weekNumber/time-spent' );
+		// Fetch timelogs and boards/cards data concurrently
+		const [ timelogResponse, cardsResponse ] = await Promise.all( [
+			axios.get( `${ process.env.API_URL }/paymo/timelogs/${ weekNumber }`, {
+				params: { secret: secretToken }
+			} ),
+			axios.get( `${ process.env.API_URL }/boards/${ boardId }/cards`, {
+				params: { secret: secretToken }
+			} )
+		] );
+
+		let entries = timelogResponse.data.entries;
+
+		if ( ! Array.isArray( entries ) ) {
+			throw new TypeError( 'Expected entries to be an array' );
 		}
 
-		const entries = await axios.get( `${ PAYMO_API_BASE_URL }/entries`, {
-			headers: { Authorization: basicAuth },
-			params: {
-				where: `time_interval in ("${ startDate }","${ endDate }")`
-			}
+		const cards = cardsResponse.data;
+		entries = entries.filter( entry => entry.description && includesTrelloLink( entry.description ) );
+
+		entries = entries.map( entry => {
+			const match = entry.description.match( /\/c\/[a-zA-Z0-9]+/ );
+			if ( ! match ) return entry;
+			const shortLink = match[ 0 ].split( '/' )[ 2 ];
+			return { ...entry, shortLink };
 		} );
 
-		console.log( 'entries from paymo successfully fetched' );
+		console.log( entries )
 
+		const matchedEntries = entries.filter( entry => cards.some( card => card.shortLink === entry.shortLink ) );
 
-		axios.get( `${ process.env.API_URL }/boards/${ boardId }/cards`, {
-			params: {
-				secret: secretToken
-			}
-		} ).then( ( response ) => {
-			const shortLinks = response.data.map( item => item.shortLink );
-			const filteredEntries = entries.data.entries.filter( entry =>
-				entry.description && shortLinks.some( shortLink => entry.description.includes( shortLink ) )
-			);
-			const totalDuration = filteredEntries.reduce( ( total, entry ) => total + entry.duration, 0 );
-			res.json( totalDuration );
+		const timeInSeconds = matchedEntries.reduce( ( total, entry ) => total + entry.duration, 0 );
 
-		} );
-
-		console.log( 'total duration successfully fetched' )
+		res.json( timeInSeconds );
 
 	} catch ( error ) {
 		console.error( error );
 		res.status( 500 ).send( error.toString() );
 	}
-} )
+} );
 
 router.get( '/last-week-hours-daily-send-to-sheets', async ( req, res ) => {
 	const secretToken = process.env.SECRET_QUERY_PARAM_VALUE; // Make sure to store your secret token in your environment variables
