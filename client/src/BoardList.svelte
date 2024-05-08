@@ -17,11 +17,16 @@
 	let actions = [];
 	let netlify_url = process.env.API_URL;
 	let error = false;
+	let pagination = 1;
 	
 	
 	onMount( async () => {
 		await loadBoards();
 	} );
+	
+	function paginationPlus() {
+		handleTimeLogSubmit();
+	}
 	
 	async function makeAuthRequest( url ) {
 		const user = netlifyIdentity.currentUser();
@@ -100,35 +105,42 @@
 	}
 	
 	async function handleTimeLogSubmit() {
-		const urlRaw = document.getElementById( 'timelog-url' ).value;
+		const urlRaw = document.getElementById('timelog-url').value;
 		
-		if ( ! urlRaw ) {
-			alert( 'Please enter a trello URL' );
+		if (!urlRaw) {
+			alert('Please enter a Trello URL');
 			return;
 		}
 		
 		// Regular expression to extract the Trello card short link
-		const match = urlRaw.match( /https:\/\/trello\.com\/c\/([a-zA-Z0-9]+)/ );
+		const match = urlRaw.match(/https:\/\/trello\.com\/c\/([a-zA-Z0-9]+)/);
 		
-		if ( ! match ) {
-			alert( 'Please enter a valid Trello URL' );
+		if (!match) {
+			alert('Please enter a valid Trello URL');
 			return;
 		}
 		
-		const shortLink = match[ 1 ]; // Capture the short link part of the URL
+		const shortLink = match[1]; // Capture the short link part of the URL
 		
 		// Assuming netlify_url is defined elsewhere in your script and available here
-		const url = `${ netlify_url }/cards/${ shortLink }/timelogs`;
+		const url = `${netlify_url}/cards/${shortLink}/${pagination}/timelogs`;
 		
 		try {
 			error = false;
 			loadingState = true;
-			timelogEntries = await makeAuthRequest( url ); // Ensure variable is properly declared
-			timelogEntries.sort( ( a, b ) => new Date( b.date ) - new Date( a.date ) );
-			totalLoggedTime = timelogEntries.reduce( ( acc, entry ) => acc + entry.duration, 0 );
+			
+			const newTimelogEntries = await makeAuthRequest(url);
+			newTimelogEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+			
+			// Append new entries to existing ones
+			timelogEntries = [...timelogEntries, ...newTimelogEntries];
+			
+			totalLoggedTime = timelogEntries.reduce((acc, entry) => acc + entry.duration, 0);
+			
 			loadingState = false;
-		} catch ( error ) {
-			console.error( 'Error loading timelog:', error );
+			pagination++;  // Increment pagination to load next set of data next time
+		} catch (error) {
+			console.error('Error loading timelog:', error);
 			loadingState = false;
 			error = true;
 		}
@@ -269,13 +281,12 @@
 		<a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={handleTimelogCheck}>Close</a>
 		<h3>Timelog</h3>
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-		<span class="text-small mb-10">Use this tool to check the logged time based on cards. Simply paste the card url and check the timelog<br>
-		Due to speed reasons, only 30 days of time log will be checked</span>
+		<span class="text-small mb-10">Use this tool to check the logged time based on cards. Simply paste the card url and check the timelog</span>
 		</div>
 		
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 			<input type="text" id="timelog-url" placeholder="Paste the card url here"/>
-			<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check</button>
+			<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check Last 30 Days</button>
 		</div>
 		
 		{#if loadingState}
@@ -306,6 +317,13 @@
 				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
 			</div>
 		{/each}
+		
+		{#if timelogEntries.length > 0}
+			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
+				<button class="btn btn-primary" on:click={paginationPlus}>Load previous 30 days</button>
+			</div>
+		{/if}
+	
 	
 	</div>
 {/if}

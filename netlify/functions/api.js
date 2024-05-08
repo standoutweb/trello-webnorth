@@ -209,17 +209,21 @@ router.get( '/last-week-hours-daily-send-to-sheets', requireAuth, async ( req, r
 		} );
 	} )
 } );
-router.get( '/cards/:cardShortLink/timelogs', requireAuth, async ( req, res ) => {
+router.get( '/cards/:cardShortLink/:pagination/timelogs', requireAuth, async ( req, res ) => {
 	try {
 		const cardShortLink = req.params.cardShortLink;
+		const pagination = req.params.pagination;
 
-		const today = new Date();
-		const lastThirtyDays = new Date( today.setDate( today.getDate() - 60 ) );
-		lastThirtyDays.setHours( 0, 0, 0, 0 );
-		const startDate = lastThirtyDays.toISOString().split( 'T' )[ 0 ];
-		const endDate = new Date().toISOString().split( 'T' )[ 0 ];
+		const startDate = new Date();
+		startDate.setDate( startDate.getDate() - ( 30 * pagination ) );
+		const endDate = new Date();
+		endDate.setDate( endDate.getDate() - ( 30 * ( pagination - 1 ) ) );
 
-		const entries = await axios.get( `${ process.env.API_URL }/paymo/timelogs/${ startDate }/${ endDate }`, {
+		// paymo api only accepts dates in the format YYYY-MM-DD
+		const formattedStartDate = startDate.toISOString().split( 'T' )[ 0 ];
+		const formattedEndDate = endDate.toISOString().split( 'T' )[ 0 ];
+
+		const entries = await axios.get( `${ process.env.API_URL }/paymo/timelogs/${ formattedStartDate }/${ formattedEndDate }`, {
 			params: {
 				secret: process.env.SECRET_QUERY_PARAM_VALUE,
 			}
