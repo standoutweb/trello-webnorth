@@ -170,24 +170,20 @@
 	}
 	
 	function secondsToMinutes( seconds ) {
-		return Math.floor( seconds / 60 );
+		return seconds / 60;
 	}
 	
 	function minutesToHours( minutes ) {
-		return Math.floor( minutes / 60 );
+		return minutes / 60;
 	}
 	
-	function beautifyDate( dateString ) {
-		if ( ! dateString ) {
-			return 'Bulk added';
+	function beautifyDate( entry ) {
+		// if entry.date is empty, then return .start_time
+		if ( ! entry.date ) {
+			return entry.start_time;
+		} else {
+			return entry.date;
 		}
-		const date = new Date( dateString );
-		const day = String( date.getDate() ).padStart( 2, '0' );
-		const month = String( date.getMonth() + 1 ).padStart( 2, '0' ); // Months are 0-indexed
-		const year = String( date.getFullYear() ).slice( -2 );
-		const hours = String( date.getHours() ).padStart( 2, '0' );
-		const minutes = String( date.getMinutes() ).padStart( 2, '0' );
-		return `${ day }.${ month }.${ year } - ${ hours }:${ minutes }`;
 	}
 
 </script>
@@ -307,8 +303,7 @@
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
 				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
-				<span class="text-small mb-10">Logged on: { timelog.date } {beautifyDate( timelog.startTime )}
-					- {beautifyDate( timelog.endTime )}</span>
+				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
 			</div>
 		{/each}
 	
