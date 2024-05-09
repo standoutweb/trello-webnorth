@@ -18,7 +18,9 @@
 	let netlify_url = process.env.API_URL;
 	let error = false;
 	let pagination = 1;
-	
+	let timelogUrl = '';  // This will hold the current value of the timelog input
+	let showTimelogButton = true;  // This controls the visibility of the timelog button
+	$: showTimelogButton = timelogUrl.trim() !== '';
 	
 	onMount( async () => {
 		await loadBoards();
@@ -148,10 +150,12 @@
 			
 			loadingState = false;
 			pagination++;  // Increment pagination to load next set of data next time
+			showTimelogButton = false;
 		} catch ( error ) {
 			console.error( 'Error loading timelog:', error );
 			loadingState = false;
 			error = true;
+			showTimelogButton = true;
 		}
 	}
 	
@@ -294,10 +298,10 @@
 		</div>
 		
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-			<input type="text" id="timelog-url" placeholder="Paste the card url here"/>
-			<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check Last 30
-				Days
-			</button>
+			<input id="timelog-url" type="text" bind:value={timelogUrl} placeholder="Paste the card URL here"/>
+			{#if showTimelogButton}
+				<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check Timelog</button>
+			{/if}
 		</div>
 		
 		{#each timelogEntries as timelog}
@@ -322,12 +326,12 @@
 		
 		{#if timelogEntries.length > 0}
 			{#if totalLoggedTime > 0}
-				<span class="pt-10 pb-10 text-small">{minutesToHours( secondsToMinutes( totalLoggedTime ) )} hours logged in total. Load more to see if there are more entries
+				<span class="pt-10 pb-10 text-small">{minutesToHours( secondsToMinutes( totalLoggedTime ) )} hours logged in total. Load more to see if there are more entries. Each page contains former 30 days of data. For example page 2 will show data from 60 days ago to 30 days ago.
 				</span>
 			{/if}
 			
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-				<button class="btn btn-primary" on:click={paginationPlus}>Load previous 30 days</button>
+				<button class="btn btn-primary" on:click={paginationPlus}>Load page { pagination }</button>
 			</div>
 		{/if}
 	
