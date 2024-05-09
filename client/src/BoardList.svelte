@@ -135,6 +135,7 @@
 		
 		// Assuming netlify_url is defined elsewhere in your script and available here
 		const url = `${ netlify_url }/cards/${ shortLink }/${ pagination }/timelogs`;
+		showTimelogButton = false;
 		
 		try {
 			error = false;
@@ -150,7 +151,6 @@
 			
 			loadingState = false;
 			pagination++;  // Increment pagination to load next set of data next time
-			showTimelogButton = false;
 		} catch ( error ) {
 			console.error( 'Error loading timelog:', error );
 			loadingState = false;
