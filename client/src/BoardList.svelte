@@ -202,15 +202,29 @@
 		return minutes / 60;
 	}
 	
-	function beautifyDate( entry ) {
-		// if entry.date is empty, then return .start_time
-		if ( ! entry.date ) {
-			return entry.start_time;
+	function beautifyDate(entry) {
+		// If entry.date is empty, then return .start_time
+		if (!entry.date) {
+			// Extract the date part from the start_time
+			const dateFromStartTime = new Date(entry.start_time).toISOString().split('T')[0];
+			return formatDate(dateFromStartTime);
 		} else {
-			return entry.date;
+			return formatDate(entry.date);
 		}
 	}
-
+	
+	function formatDate(dateString) {
+		// Split the date string to extract the year, month, and day
+		const [year, month, day] = dateString.split('-');
+		
+		// Create a new Date object from the extracted components
+		const date = new Date(year, month - 1, day);
+		
+		// Format the date in the European format (DD.MM.YYYY)
+		const formattedDate = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+		
+		return formattedDate;
+	}
 </script>
 
 <div class="d-flex gap-20 justify-between p-10 align-center">

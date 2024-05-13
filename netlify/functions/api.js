@@ -209,35 +209,44 @@ router.get( '/last-week-hours-daily-send-to-sheets', requireAuth, async ( req, r
 		} );
 	} )
 } );
-router.get( '/cards/:cardShortLink/:pagination/timelogs', requireAuth, async ( req, res ) => {
+router.get('/cards/:cardShortLink/:pagination/timelogs', requireAuth, async (req, res) => {
 	try {
 		const cardShortLink = req.params.cardShortLink;
 		const pagination = req.params.pagination;
 
-		const startDate = new Date();
-		startDate.setDate( startDate.getDate() - ( 30 * pagination ) );
-		const endDate = new Date();
-		endDate.setDate( endDate.getDate() - ( 30 * ( pagination - 1 ) ) );
+		// Set start and end dates for the first page to include tomorrow
+		let startDate, endDate;
+		if (pagination === '1') {
+			endDate = new Date();
+			endDate.setDate(endDate.getDate() + 1); // Set endDate to tomorrow
+			startDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - 30);
+		} else {
+			endDate = new Date();
+			endDate.setDate(endDate.getDate() - (30 * (pagination - 1)));
+			startDate = new Date();
+			startDate.setDate(startDate.getDate() - (30 * pagination));
+		}
 
 		// paymo api only accepts dates in the format YYYY-MM-DD
-		const formattedStartDate = startDate.toISOString().split( 'T' )[ 0 ];
-		const formattedEndDate = endDate.toISOString().split( 'T' )[ 0 ];
+		const formattedStartDate = startDate.toISOString().split('T')[0];
+		const formattedEndDate = endDate.toISOString().split('T')[0];
 
-		const entries = await axios.get( `${ process.env.API_URL }/paymo/timelogs/${ formattedStartDate }/${ formattedEndDate }`, {
+		const entries = await axios.get(`${process.env.API_URL}/paymo/timelogs/${formattedStartDate}/${formattedEndDate}`, {
 			params: {
 				secret: process.env.SECRET_QUERY_PARAM_VALUE,
 			}
-		} );
+		});
 
 		// remove entries that don't have the card short link in the description
+		const cardEntries = entries.data.filter(entry => entry.description && includesTrelloLink(entry.description) && entry.description.includes(cardShortLink));
 
-		const cardEntries = entries.data.filter( entry => entry.description && includesTrelloLink( entry.description ) && entry.description.includes( cardShortLink ) );
-		res.json( cardEntries );
-	} catch ( error ) {
-		console.error( 'Error fetching time logs:', error );
-		res.status( 500 ).json( { error: 'Internal Server Error' } );
+		res.json(cardEntries);
+	} catch (error) {
+		console.error('Error fetching time logs:', error);
+		res.status(500).json({ error: 'Internal Server Error' });
 	}
-} );
+});
+
 // SEND TO GOOGLE SHEETS
 router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res ) => {
 	const timeInSeconds = req.params.timeInSeconds;
