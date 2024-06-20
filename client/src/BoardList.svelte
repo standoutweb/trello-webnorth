@@ -164,16 +164,17 @@
 		const taskUrl = `${netlify_url}/paymo/task/${taskId}`;
 		const taskData = await makeAuthRequest(taskUrl);
 		
-		// Find the task ID link and replace its text with the task name
-		const taskLink = document.getElementById(`task-${taskId}`);
-		taskLink.textContent = taskData.name;
-		
-		// Remove the href attribute to make it no longer a link
-		taskLink.removeAttribute('href');
-		// Optionally, you can also remove the click event listener
-		taskLink.onclick = null;
-	}
-	function handleTimelogCheck() {
+		// Find all task ID links with the same task ID and replace their text with the task name
+		const taskLinks = document.querySelectorAll(`#task-${taskId}`);
+		taskLinks.forEach(taskLink => {
+			taskLink.textContent = taskData.name;
+			
+			// Remove the href attribute to make it no longer a link
+			taskLink.removeAttribute('href');
+			// Optionally, you can also remove the click event listener
+			taskLink.onclick = null;
+		});
+	}	function handleTimelogCheck() {
 		selectedTimelog = ! selectedTimelog;
 	}
 	
@@ -337,7 +338,7 @@
 				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
 				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
 				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
-				<span class="text-small">Paymo Task: <a href="#" id="task-{timelog.task_id}" data-id="{timelog.task_id}" on:click|preventDefault={() => fetchAndDisplayTaskName(timelog.task_id)}>Load name</a> or <a target="_blank" href="https://app.paymoapp.com/#/Paymo.Timesheets/task/{timelog.task_id}">Open in Paymo</a></span>
+				<span class="text-small">Paymo Task: <a href="#" id="task-{timelog.task_id}" data-id="{timelog.task_id}" on:click|preventDefault={() => fetchAndDisplayTaskName(timelog.task_id)}>Load {timelog.task_id}</a> or <a target="_blank" href="https://app.paymoapp.com/#/Paymo.Timesheets/task/{timelog.task_id}">Open in Paymo</a></span>
 			</div>
 		{/each}
 		
