@@ -246,7 +246,23 @@ router.get('/cards/:cardShortLink/:pagination/timelogs', requireAuth, async (req
 		res.status(500).json({ error: 'Internal Server Error' });
 	}
 });
+router.get('/paymo/task/:taskID', requireAuth, async (req, res) => {
+	const taskID = req.params.taskID;
+	const username = process.env.PAYMO_API_KEY;
+	const password = 'random'; // Use a random password as specified
+	const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
 
+	try {
+		const task = await axios.get(`${PAYMO_API_BASE_URL}/tasks/${taskID}`, {
+			headers: { Authorization: basicAuth }
+		});
+
+		res.json(task.data.tasks[0]);
+	} catch (error) {
+		console.error('Error fetching task:', error);
+		res.status(500).json({ error: 'Internal Server Error' });
+	}
+})
 // SEND TO GOOGLE SHEETS
 router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res ) => {
 	const timeInSeconds = req.params.timeInSeconds;

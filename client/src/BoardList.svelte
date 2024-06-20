@@ -20,6 +20,7 @@
 	let pagination = 1;
 	let timelogUrl = '';  // This will hold the current value of the timelog input
 	let showTimelogButton = true;  // This controls the visibility of the timelog button
+	let taskName = '';
 	$: showTimelogButton = timelogUrl.trim() !== '';
 	
 	onMount( async () => {
@@ -28,6 +29,10 @@
 	
 	function paginationPlus() {
 		handleTimeLogSubmit();
+	}
+	
+	function taskNameChange(event) {
+		// return
 	}
 	
 	async function makeAuthRequest( url ) {
@@ -133,8 +138,8 @@
 			lastShortLink = shortLink; // Update lastShortLink to the new one
 		}
 		
-		// Assuming netlify_url is defined elsewhere in your script and available here
 		const url = `${ netlify_url }/cards/${ shortLink }/${ pagination }/timelogs`;
+		
 		showTimelogButton = false;
 		
 		try {
@@ -146,6 +151,7 @@
 			
 			// Append new entries to existing ones
 			timelogEntries = [ ...timelogEntries, ...newTimelogEntries ];
+			timelogEntries.sort((a, b) => new Date(b.date || b.start_time) - new Date(a.date || a.start_time));
 			
 			totalLoggedTime = timelogEntries.reduce( ( acc, entry ) => acc + entry.duration, 0 );
 			
@@ -159,6 +165,19 @@
 		}
 	}
 	
+	async function fetchAndDisplayTaskName(taskId) {
+		const taskUrl = `${netlify_url}/paymo/task/${taskId}`;
+		const taskData = await makeAuthRequest(taskUrl);
+		
+		// Find the task ID link and replace its text with the task name
+		const taskLink = document.getElementById(`task-${taskId}`);
+		taskLink.textContent = taskData.name;
+		
+		// Remove the href attribute to make it no longer a link
+		taskLink.removeAttribute('href');
+		// Optionally, you can also remove the click event listener
+		taskLink.onclick = null;
+	}
 	function handleTimelogCheck() {
 		selectedTimelog = ! selectedTimelog;
 	}
@@ -323,6 +342,7 @@
 				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
 				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
 				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
+				<span class="text-small">Paymo Task: <a href="#" id="task-{timelog.task_id}" data-id="{timelog.task_id}" on:click|preventDefault={() => fetchAndDisplayTaskName(timelog.task_id)}>Load name</a> or <a target="_blank" href="https://app.paymoapp.com/#/Paymo.Timesheets/task/{timelog.task_id}">Open in Paymo</a></span>
 			</div>
 		{/each}
 		
