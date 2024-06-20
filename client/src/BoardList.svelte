@@ -20,7 +20,6 @@
 	let pagination = 1;
 	let timelogUrl = '';  // This will hold the current value of the timelog input
 	let showTimelogButton = true;  // This controls the visibility of the timelog button
-	let taskName = '';
 	$: showTimelogButton = timelogUrl.trim() !== '';
 	
 	onMount( async () => {
@@ -29,10 +28,6 @@
 	
 	function paginationPlus() {
 		handleTimeLogSubmit();
-	}
-	
-	function taskNameChange(event) {
-		// return
 	}
 	
 	async function makeAuthRequest( url ) {
