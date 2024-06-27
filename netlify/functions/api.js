@@ -9,6 +9,8 @@ const trello = new Trello( process.env.KEY, process.env.TOKEN );
 const PAYMO_API_BASE_URL = "https://app.paymoapp.com/api";
 const api = express();
 const router = Router();
+let endRow = 0;
+const excludedProjects = [3140209]
 
 // Middleware to check for authenticated user
 const requireAuth = ( req, res, next ) => {
@@ -64,6 +66,221 @@ function convertMinutesToHours( minutes ) {
 function includesTrelloLink( description ) {
 	const trelloLinkRegex = /trello.com\/c\/[a-zA-Z0-9]+/g;
 	return trelloLinkRegex.test( description );
+}
+
+async function getBudgetHoursOfProjects( projectId ) {
+	const username = process.env.PAYMO_API_KEY;
+	const password = 'random';
+	const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+
+	try {
+		const response = await axios.get(`${PAYMO_API_BASE_URL}/projects/${projectId}`, {
+			headers: { Authorization: basicAuth }
+		});
+		const lastWeek = getWeekNumber() - 1;
+		const project = response.data.projects[0];
+		return project.budget_hours;
+	} catch (error) {
+		console.error(`Error fetching project with ID ${projectId}:`, error);
+	}
+}
+
+async function getEntriesForSingleProject(projectId) {
+	const username = process.env.PAYMO_API_KEY;
+	const password = 'random'; // Use a random password as specified
+	const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+
+	try {
+		const response = await axios.get(`${PAYMO_API_BASE_URL}/entries?where=project_id=${projectId}`, {
+			headers: { Authorization: basicAuth }
+		});
+		return response.data.entries;
+
+	} catch (error) {
+		console.error(`Error fetching project with ID ${projectId}:`, error);
+	}
+}
+
+async function getTotalTimeDurationForEntries(entries) {
+	let totalDuration = 0;
+	if (typeof entries === 'object' && entries !== null) {
+		let entriesArray = Object.entries(entries);
+		entriesArray.forEach(entry => {
+			if (Array.isArray(entry)) {
+				let filteredArray = entry.filter(item => typeof item === 'object');
+				totalDuration += filteredArray[0].duration;
+			} else {
+				console.error('Error: entry is not an array');
+			}
+		});
+	} else {
+		console.error('Error: entries is not an object');
+	}
+	return totalDuration;
+}
+
+async function getTotalTimeDurationForLastWeek(entries, weekNumber){
+	let totalDuration = 0;
+	if (typeof entries === 'object' && entries !== null) {
+		let entriesArray = Object.entries(entries);
+		entriesArray.forEach(entry => {
+			if (Array.isArray(entry)) {
+				let filteredArray = entry.filter(item => typeof item === 'object');
+				if (getWeekNumber(new Date(filteredArray[0].date)) === weekNumber && filteredArray[0].description.includes('trello.com')) {
+					totalDuration += filteredArray[0].duration;
+				}
+			} else {
+				console.error('Error: entry is not an array');
+			}
+		});
+	} else {
+		console.error('Error: entries is not an object');
+	}
+	return totalDuration;
+}
+
+async function getLastWeekBillableHours(projectIds){
+	let billableTime = 0;
+	for (let index = 0; index < projectIds.length; index++) {
+		const projectId = projectIds[index];
+		//if projectIds is in the excludedProjects array, skip the project
+		if(excludedProjects.includes(projectId)){
+			continue;
+		}
+		const budgetHours = await getBudgetHoursOfProjects(projectId);
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		if(budgetHours !== null){
+			const entries = await getEntriesForSingleProject(projectId);
+			const totalTime = convertMinutesToHours(convertSecondsToMinutes(await getTotalTimeDurationForEntries(entries)));
+			const lastWeekTime = convertMinutesToHours(convertSecondsToMinutes(await getTotalTimeDurationForLastWeek(entries, getWeekNumber() - 1)));
+			if(budgetHours - (totalTime - lastWeekTime) > 0) {
+				if(budgetHours - totalTime > 0){
+					billableTime += lastWeekTime;
+				} else {
+					billableTime += budgetHours - (totalTime - lastWeekTime);
+				}
+			}
+			await new Promise(resolve => setTimeout(resolve, 1000));
+		}
+	}
+	return billableTime;
+}
+
+async function getCreatedCardsCount(weekNumber, boardId) {
+	try {
+		const cards = await trello.getCardsOnBoard(boardId);
+		let valuesArray = [0, 0, 0];
+		cards.forEach(card => {
+			const cardWeekNumber = getWeekNumber(getCardCreationDate(card.id));
+			if (cardWeekNumber === weekNumber - 1) {
+				valuesArray[1]++; // created in the previous week
+			} else if (cardWeekNumber < weekNumber - 1){
+				valuesArray[2]++; // created before the previous week
+			}
+		});
+		valuesArray[0] = await getNewTasksCount();
+		await saveDataToSpreadsheet('C', valuesArray);
+	} catch (error) {
+		console.error('Error fetching cards:', error);
+	}
+}
+
+function getCardCreationDate(cardId) {
+	const timestamp = parseInt(cardId.substring(0,8), 16);
+	const createdDate = new Date(timestamp * 1000);
+	return createdDate;
+}
+
+async function saveDataToSpreadsheet(sheetRange, values) {
+	const result = await connectToSpreadsheet();
+	const spreadsheetId = result.spreadsheetId;
+	const endRow = result.endRow;
+	const sheets = result.sheets;
+
+	let nextEmptyRow = endRow + 1;
+	let range = `Sheet1!${ sheetRange }${ nextEmptyRow }`;
+	const request = {
+		spreadsheetId,
+		range,
+		valueInputOption: 'RAW',
+		resource: {
+			values: [ [ ...values ] ]
+		}
+	};
+
+	const response = await sheets.spreadsheets.values.update( request );
+}
+
+async function connectToSpreadsheet() {
+	const credentials = JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii'));
+	const auth = new GoogleAuth({
+		credentials: credentials,
+		scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+	});
+	const client = await auth.getClient();
+	const sheets = google.sheets({ version: 'v4', auth: client });
+	const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+	let range = 'Sheet1!A1:ZZZ';
+	let dataResponse = await sheets.spreadsheets.values.get( { spreadsheetId, range } );
+	let values = dataResponse.data.values;
+	let startRow = 1;
+	if(endRow === 0) {
+		endRow = values.length;
+	}
+	while ( endRow > startRow && ! values[ endRow - 1 ].some( cell => cell.trim() !== '' ) ) {
+		endRow--;
+	}
+	return { spreadsheetId, endRow, sheets };
+}
+
+async function getListWeekActionsByIdList( idList ) {
+	try {
+		const url = `https://api.trello.com/1/lists/${idList}/actions?key=${process.env.KEY}&token=${process.env.TOKEN}&limit=1000`;
+		const response = await axios.get(url);
+		const actionsList = response.data;
+		const lastWeekNumber = getWeekNumber() - 1;
+
+		const actions = actionsList.filter(action => {
+			const actionDate = new Date(action.date);
+			return getWeekNumber(actionDate) === lastWeekNumber;
+		});
+		return actions.length;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+async function getNewTasksCount() {
+	const boardId = process.env.DAILY_BOARD_ID;
+	const listId = await getListIdByName(boardId, 'New Tasks');
+	try {
+		const url = `https://api.trello.com/1/lists/${listId}/actions?key=${process.env.KEY}&token=${process.env.TOKEN}&limit=1000`;
+		const response = await axios.get(url);
+		const actionsList = response.data;
+		const lastWeekNumber = getWeekNumber() - 1;
+
+		const cardShortLinks = actionsList
+			.filter(action => getWeekNumber(new Date(action.date)) === lastWeekNumber)
+			.map(action => action.data.card.shortLink);
+
+		const uniqueCardShortLinks = [...new Set(cardShortLinks)];
+		return uniqueCardShortLinks.length;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+function getListIdByName(boardId, listName) {
+	const url = `https://api.trello.com/1/boards/${boardId}/lists?key=${process.env.KEY}&token=${process.env.TOKEN}`;
+	return axios.get(url)
+		.then(response => {
+			const lists = response.data;
+			const matchingList = lists.find(list => list.name === listName);
+			return matchingList ? matchingList.id : null;
+		})
+		.catch(error => {
+			console.error(error);
+		});
 }
 
 router.use( ( req, res, next ) => {
@@ -192,9 +409,10 @@ router.get( '/paymo/:weekNumber/:boardId/timelogs/', requireAuth, async ( req, r
 	res.json( matchedEntries );
 } );
 router.get( '/last-week-hours-daily-send-to-sheets', requireAuth, async ( req, res ) => {
-
 	const lastWeek = getWeekNumber() - 1;
 	const boardId = process.env.DAILY_BOARD_ID;
+	const listId = process.env.LIST_ID;
+	endRow = 0;
 	axios.get( `${ process.env.API_URL }/boards/${ boardId }/${ lastWeek }/seconds`, {
 		params: {
 			secret: process.env.SECRET_QUERY_PARAM_VALUE
@@ -210,189 +428,19 @@ router.get( '/last-week-hours-daily-send-to-sheets', requireAuth, async ( req, r
 			res.json( response.data );
 		} );
 		let uniqueProjectIds = [...new Set(projectIds)];
-		let billableTime = 0;
-		for (let index = 0; index < uniqueProjectIds.length; index++) {
-			console.log('Project ID: ', uniqueProjectIds[index])
-			const projectId = uniqueProjectIds[index];
-			const budgetHours = await getBudgetHoursOfProjects(projectId);
-			await new Promise(resolve => setTimeout(resolve, 1000));
-			const entries = await getEntriesForSingleProject(projectId);
-			const totalTime = convertMinutesToHours(convertSecondsToMinutes(await getTotalTimeDurationForEntries(entries)));
-			if(budgetHours - totalTime > 0) {
-				billableTime += await getTotalTimeDurationForLastWeek(entries, lastWeek);
-			} else {
-				console.log(budgetHours, totalTime)
-			}
-			await new Promise(resolve => setTimeout(resolve, 1000));
 
-			console.log('Billable Time: ', convertMinutesToHours(convertSecondsToMinutes(billableTime)))
-		}
+		const billableTime = await getLastWeekBillableHours(uniqueProjectIds);
+		let billableTimeArray = [];
+		billableTimeArray[0] = billableTime;
+		await saveDataToSpreadsheet('G', billableTimeArray);
 
+		const tasksMovedToDone = await getListWeekActionsByIdList(listId);
+		let tasksMovedToDoneArray = [];
+		tasksMovedToDoneArray[0] = tasksMovedToDone;
+		await saveDataToSpreadsheet('F', tasksMovedToDoneArray);
 	} )
-	await get_created_cards_count(lastWeek, boardId);
+	await getCreatedCardsCount(lastWeek, boardId);
 } );
-
-async function getBudgetHoursOfProjects( projectId ) {
-	const username = process.env.PAYMO_API_KEY;
-	const password = 'random'; // Use a random password as specified
-	const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
-
-	try {
-		const response = await axios.get(`${PAYMO_API_BASE_URL}/projects/${projectId}`, {
-			headers: { Authorization: basicAuth }
-		});
-		const lastWeek = getWeekNumber() - 1;
-		const project = response.data.projects[0];
-		return project.budget_hours;
-	} catch (error) {
-		console.error(`Error fetching project with ID ${projectId}:`, error);
-	}
-}
-
-async function getEntriesForSingleProject(projectId) {
-	const username = process.env.PAYMO_API_KEY;
-	const password = 'random'; // Use a random password as specified
-	const basicAuth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
-
-	try {
-		const response = await axios.get(`${PAYMO_API_BASE_URL}/entries?where=project_id=${projectId}`, {
-			headers: { Authorization: basicAuth }
-		});
-		return response.data.entries;
-
-	} catch (error) {
-		console.error(`Error fetching project with ID ${projectId}:`, error);
-	}
-}
-
-async function getTotalTimeDurationForEntries(entries) {
-	let totalDuration = 0;
-	if (typeof entries === 'object' && entries !== null) {
-		let entriesArray = Object.entries(entries);
-		entriesArray.forEach(entry => {
-			if (Array.isArray(entry)) {
-				let filteredArray = entry.filter(item => typeof item === 'object');
-				totalDuration += filteredArray[0].duration;
-			} else {
-				console.error('Error: entry is not an array');
-			}
-		});
-	} else {
-		console.error('Error: entries is not an object');
-	}
-	return totalDuration;
-}
-
-async function getTotalTimeDurationForLastWeek(entries, weekNumber){
-	let totalDuration = 0;
-	if (typeof entries === 'object' && entries !== null) {
-		let entriesArray = Object.entries(entries);
-		entriesArray.forEach(entry => {
-			if (Array.isArray(entry)) {
-				let filteredArray = entry.filter(item => typeof item === 'object');
-				if (getWeekNumber(new Date(filteredArray[0].date)) === weekNumber) {
-					totalDuration += filteredArray[0].duration;
-				}
-			} else {
-				console.error('Error: entry is not an array');
-			}
-		});
-	} else {
-		console.error('Error: entries is not an object');
-	}
-	return totalDuration;
-}
-
-async function get_created_cards_count(weekNumber, boardId) {
-	try {
-		const cards = await trello.getCardsOnBoard(boardId);
-		let valuesArray = [0, 0, 0];
-		cards.forEach(card => {
-			const cardWeekNumber = getWeekNumber(getCardCreationDate(card.id));
-			if (cardWeekNumber === weekNumber) {
-				valuesArray[0]++; // created in the same week
-			} else if (cardWeekNumber === weekNumber - 1) {
-				valuesArray[1]++; // created in the previous week
-			} else {
-				valuesArray[2]++; // created before the previous week
-			}
-		});
-		await saveDataToSpreadsheet('C', valuesArray);
-	} catch (error) {
-		console.error('Error fetching cards:', error);
-	}
-}
-
-function getCardCreationDate(cardId) {
-	const timestamp = parseInt(cardId.substring(0,8), 16);
-	const createdDate = new Date(timestamp * 1000);
-	return createdDate;
-}
-
-function getCardStatus(cardId) {
-	trello.getCard('boardId', cardId)
-		.then(card => {
-			console.log('Card status:', card.idList); // idList represents the list (status) the card is in
-		})
-		.catch(error => {
-			console.error('Error fetching card:', error);
-		});
-}
-
-function getCardMoveDate(cardId) {
-	trello.getActionsOnCard(cardId)
-		.then(actions => {
-			actions.forEach(action => {
-				if (action.data.board.name === 'Daily Tasks - Done' ) {
-					const moveDate = new Date(action.date);
-					console.log('Card moved to Done:', moveDate);
-				}
-			});
-		})
-		.catch(error => {
-			console.error('Error fetching card actions:', error);
-		});
-}
-
-async function saveDataToSpreadsheet(sheetRange, values) {
-	const result = await connectToSpreadsheet();
-	const spreadsheetId = result.spreadsheetId;
-	const endRow = result.endRow;
-	const sheets = result.sheets;
-
-	let nextEmptyRow = endRow + 1;
-	let range = `Sheet1!${ sheetRange }${ nextEmptyRow }`;
-	const request = {
-		spreadsheetId,
-		range,
-		valueInputOption: 'RAW',
-		resource: {
-			values: [ [ ...values ] ]
-		}
-	};
-
-	const response = await sheets.spreadsheets.values.update( request );
-}
-
-async function connectToSpreadsheet() {
-	const credentials = JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii'));
-	const auth = new GoogleAuth({
-		credentials: credentials,
-		scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-	});
-	const client = await auth.getClient();
-	const sheets = google.sheets({ version: 'v4', auth: client });
-	const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-	let range = 'Sheet1!A1:ZZZ';
-	let dataResponse = await sheets.spreadsheets.values.get( { spreadsheetId, range } );
-	let values = dataResponse.data.values;
-	let startRow = 1;
-	let endRow = values.length;
-	while ( endRow > startRow && ! values[ endRow - 1 ].some( cell => cell.trim() !== '' ) ) {
-		endRow--;
-	}
-	return { spreadsheetId, endRow, sheets };
-}
 
 router.get('/cards/:cardShortLink/:pagination/timelogs', requireAuth, async (req, res) => {
 	try {
@@ -460,7 +508,8 @@ router.get( '/google/:weekNumber/:timeInSeconds', requireAuth, async ( req, res 
 		const endRow = result.endRow;
 		const sheets = result.sheets;
 
-		let range = `Sheet1!A${ endRow }`;
+		let nextEmptyRow = endRow + 1;
+		let range = `Sheet1!A${ nextEmptyRow }`;
 		const request = {
 			spreadsheetId,
 			range,
