@@ -145,7 +145,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 	endRow = 0;
 
 	try {
-		res.json('Please wait')
+
 		const { timeInSeconds: dailyTimeInSeconds, projectIds: dailyProjectIds } = await fetchBoardSeconds(boardId, lastWeek);
 		new Promise(resolve => setTimeout(resolve, 4000));
 		const { timeInSeconds: doneTimeInSeconds, projectIds: doneProjectIds } = await fetchBoardSeconds(doneBoardId, lastWeek);
@@ -157,6 +157,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		console.log('Project IDs:', dailyProjectIds, doneProjectIds)
 		const googleResponse = await fetchGoogleUpdate(lastWeek, totalTimeInSeconds);
 		console.log('Google response:', googleResponse);
+		res.json('Time sent to Google Sheets, let\'s wait for the other data to be sent.');
 
 		const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
 		let uniqueProjectIds = [...new Set([...dailyProjectIds, ...doneProjectIds])];
