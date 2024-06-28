@@ -147,7 +147,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 	try {
 
 		const { timeInSeconds: dailyTimeInSeconds, projectIds: dailyProjectIds } = await fetchBoardSeconds(boardId, lastWeek);
-		new Promise(resolve => setTimeout(resolve, 4000));
+		new Promise(resolve => setTimeout(resolve, 2000));
 		const { timeInSeconds: doneTimeInSeconds, projectIds: doneProjectIds } = await fetchBoardSeconds(doneBoardId, lastWeek);
 
 		// Sum up time in seconds for both boards
