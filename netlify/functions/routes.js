@@ -161,6 +161,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
 		let uniqueProjectIds = [...new Set([...dailyProjectIds, ...doneProjectIds])];
 		uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
+		console.log('Unique project IDs:', uniqueProjectIds)
 		const billableTime = await getLastWeekBillableHours(uniqueProjectIds);
 		let billableTimeArray = [billableTime];
 		console.log('Billable time:', billableTime);

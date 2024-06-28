@@ -26,6 +26,7 @@ export async function connectToSpreadsheet() {
 
 export async function saveDataToSpreadsheet(sheetRange, values) {
 	const result = await connectToSpreadsheet();
+	await new Promise(resolve => setTimeout(resolve, 1000));
 	const spreadsheetId = result.spreadsheetId;
 	const endRow = result.endRow;
 	const sheets = result.sheets;
@@ -40,4 +41,6 @@ export async function saveDataToSpreadsheet(sheetRange, values) {
 			values: [[...values]]
 		}
 	};
+
+	return await sheets.spreadsheets.values.update(request);
 }
