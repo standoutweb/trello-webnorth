@@ -1,6 +1,9 @@
 import axios from "axios";
-import { getPaymoAuthHeader } from "./auth";
-import { conf } from "./conf";
+import { getPaymoAuthHeader } from "./auth.js";
+import { conf } from "./conf.js";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export function getWeekNumber(d = new Date()) {
 	d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -53,11 +56,11 @@ export function getCardCreationDate(cardId) {
 
 export async function retryWithDelay(fn, retries, delay) {
 	for (let attempt = 1; attempt <= retries; attempt++) {
-		await new Promise(resolve => setTimeout(resolve, delay));
 		try {
 			return await fn();
 		} catch (error) {
 			if (attempt === retries) {
+				await new Promise(resolve => setTimeout(resolve, delay));
 				throw error;
 			}
 		}

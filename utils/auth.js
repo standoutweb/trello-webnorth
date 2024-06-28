@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 export function getPaymoAuthHeader() {
 	const username = process.env.PAYMO_API_KEY;
 	const password = 'random'; // Use a random password as specified

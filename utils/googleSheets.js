@@ -1,5 +1,9 @@
 import { GoogleAuth } from 'google-auth-library';
 import { google } from 'googleapis';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 let endRow = 0;
 export async function connectToSpreadsheet() {
 	const credentials = JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64, 'base64').toString('ascii'));

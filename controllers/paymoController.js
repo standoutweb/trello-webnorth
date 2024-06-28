@@ -6,9 +6,9 @@ import {
 	includesTrelloLink,
 	retryWithDelay,
 	getBudgetHoursOfProjects
-} from '../utils/helpers';
-import { getPaymoAuthHeader } from "../utils/auth";
-import { conf } from "../utils/conf";
+} from '../utils/helpers.js';
+import { getPaymoAuthHeader } from "../utils/auth.js";
+import { conf } from "../utils/conf.js";
 
 const retryOptions = { maxRetries: 3, retryDelay: 1000 };
 
@@ -58,7 +58,7 @@ export async function getLastWeekBillableHours( projectIds ) {
 	for ( let projectId of projectIds ) {
 
 		const budgetHours = await retryWithDelay( () => getBudgetHoursOfProjects( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
-		await new Promise( resolve => setTimeout( resolve, 1000 ) );
+		await new Promise( resolve => setTimeout( resolve, 500 ) );
 
 		if ( budgetHours !== null ) {
 			const entries = await retryWithDelay( () => getEntriesForSingleProject( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
@@ -76,7 +76,7 @@ export async function getLastWeekBillableHours( projectIds ) {
 			if ( budgetHours - ( totalTime - lastWeekTime ) > 0 ) {
 				billableTime += Math.min( lastWeekTime, budgetHours - ( totalTime - lastWeekTime ) );
 			}
-			await new Promise( resolve => setTimeout( resolve, 1000 ) );
+			await new Promise( resolve => setTimeout( resolve, 500 ) );
 		}
 	}
 

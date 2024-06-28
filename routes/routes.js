@@ -1,11 +1,11 @@
 // /netlify/functions/routes.js
 import express from 'express';
 import Trello from "trello";
-import requireAuth from '../middlewares/requireAuth';
-import { getPaymoAuthHeader } from '../utils/auth';
-import { getCreatedCardsCount, getLastWeekActionsByIdList } from '../controllers/trelloController';
-import { getLastWeekBillableHours } from '../controllers/paymoController';
-import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets';
+import requireAuth from '../middlewares/requireAuth.js';
+import { getPaymoAuthHeader } from '../utils/auth.js';
+import { getCreatedCardsCount, getLastWeekActionsByIdList } from '../controllers/trelloController.js';
+import { getLastWeekBillableHours } from '../controllers/paymoController.js';
+import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets.js';
 import {
 	convertSecondsToMinutes,
 	convertMinutesToHours,
@@ -13,9 +13,9 @@ import {
 	includesTrelloLink,
 	getStartAndEndDate,
 	fetchBoardSeconds, fetchGoogleUpdate
-} from '../utils/helpers';
+} from '../utils/helpers.js';
 import axios from "axios";
-import { conf } from "../utils/conf";
+import { conf } from "../utils/conf.js";
 
 const router = express.Router();
 const trello = new Trello( process.env.KEY, process.env.TOKEN );
@@ -147,7 +147,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 	try {
 
 		const { timeInSeconds: dailyTimeInSeconds, projectIds: dailyProjectIds } = await fetchBoardSeconds(boardId, lastWeek);
-		new Promise(resolve => setTimeout(resolve, 2000));
+		new Promise(resolve => setTimeout(resolve, 500));
 		const { timeInSeconds: doneTimeInSeconds, projectIds: doneProjectIds } = await fetchBoardSeconds(doneBoardId, lastWeek);
 		res.json('Please wait.');
 		// Sum up time in seconds for both boards
@@ -172,7 +172,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		await saveDataToSpreadsheet('F', tasksMovedToDoneArray);
 
 		const dailyCreatedCardsCount = await getCreatedCardsCount(lastWeek, boardId);
-		new Promise(resolve => setTimeout(resolve, 5000));
+		new Promise(resolve => setTimeout(resolve, 500));
 
 		await saveDataToSpreadsheet('C', dailyCreatedCardsCount);
 
@@ -236,14 +236,12 @@ router.get('/google/:weekNumber/:timeInSeconds', requireAuth, async (req, res) =
 	const { weekNumber, timeInSeconds } = req.params;
 	const hours = convertMinutesToHours(convertSecondsToMinutes(timeInSeconds));
 	console.log(`Week ${weekNumber}, ${hours} hours matched.`);
-	new Promise(resolve => setTimeout(resolve, 1000));
 
 	// Get the current year
 	const currentYear = new Date().getFullYear();
 
 	try {
 		const result = await connectToSpreadsheet();
-		new Promise( resolve => setTimeout( resolve, 2000 ) );
 		const spreadsheetId = result.spreadsheetId;
 		let endRow = result.endRow;
 		const sheets = result.sheets;
