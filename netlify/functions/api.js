@@ -1,7 +1,6 @@
-// /netlify/functions/api.js
 import express from 'express';
 import serverless from 'serverless-http';
-import router from './routes';
+import router from './routes/routes';
 
 const api = express();
 api.use('/api/', router);

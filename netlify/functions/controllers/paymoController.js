@@ -8,7 +8,7 @@ import {
 	getBudgetHoursOfProjects
 } from '../utils/helpers';
 import { getPaymoAuthHeader } from "../utils/auth";
-import { conf } from "../conf";
+import { conf } from "../utils/conf";
 
 const retryOptions = { maxRetries: 3, retryDelay: 1000 };
 

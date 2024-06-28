@@ -1,11 +1,11 @@
 // /netlify/functions/routes.js
 import express from 'express';
 import Trello from "trello";
-import requireAuth from './middlewares/requireAuth';
-import { getPaymoAuthHeader } from './utils/auth';
-import { getCreatedCardsCount, getLastWeekActionsByIdList } from './controllers/trelloController';
-import { getLastWeekBillableHours } from './controllers/paymoController';
-import { saveDataToSpreadsheet, connectToSpreadsheet } from './utils/googleSheets';
+import requireAuth from '../middlewares/requireAuth';
+import { getPaymoAuthHeader } from '../utils/auth';
+import { getCreatedCardsCount, getLastWeekActionsByIdList } from '../controllers/trelloController';
+import { getLastWeekBillableHours } from '../controllers/paymoController';
+import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets';
 import {
 	convertSecondsToMinutes,
 	convertMinutesToHours,
@@ -13,9 +13,9 @@ import {
 	includesTrelloLink,
 	getStartAndEndDate,
 	fetchBoardSeconds, fetchGoogleUpdate
-} from './utils/helpers';
+} from '../utils/helpers';
 import axios from "axios";
-import { conf } from "./conf";
+import { conf } from "../utils/conf";
 
 const router = express.Router();
 const trello = new Trello( process.env.KEY, process.env.TOKEN );

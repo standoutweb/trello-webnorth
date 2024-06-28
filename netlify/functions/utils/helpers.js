@@ -1,6 +1,6 @@
 import axios from "axios";
 import { getPaymoAuthHeader } from "./auth";
-import { conf } from "../conf";
+import { conf } from "./conf";
 
 export function getWeekNumber(d = new Date()) {
 	d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));

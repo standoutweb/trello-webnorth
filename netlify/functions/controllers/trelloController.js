@@ -1,7 +1,7 @@
 import Trello from 'trello';
 import { getWeekNumber, getListIdByName, getCardCreationDate, retryWithDelay } from '../utils/helpers';
 import axios from "axios";
-import { conf } from "../conf";
+import { conf } from "../utils/conf";
 
 const trello = new Trello( process.env.KEY, process.env.TOKEN );
 const retryOptions = { maxRetries: 3, retryDelay: 1000 };
