@@ -8,29 +8,15 @@ import {
 	getBudgetHoursOfProjects
 } from '../utils/helpers';
 import { getPaymoAuthHeader } from "../utils/auth";
+import { conf } from "../conf";
 
 const retryOptions = { maxRetries: 3, retryDelay: 1000 };
 
-async function getProjectBudgetHoursWithRetry( projectId ) {
-	return retryWithDelay( async () => {
-		try {
-			const response = await axios.get( `${ process.env.PAYMO_API_URL }/projects/${ projectId }`, {
-				headers: { Authorization: getPaymoAuthHeader() }
-			} );
-			const project = response.data.projects[ 0 ];
-			console.log( `Fetched project with ID ${ projectId } and budget hours ${ project.budget_hours }` );
-			return project.budget_hours;
-		} catch ( error ) {
-			console.error( `Error fetching project with ID ${ projectId }:`, error );
-			throw error; // Ensure the error is rethrown to trigger retry
-		}
-	}, retryOptions.maxRetries, retryOptions.retryDelay );
-}
 
 async function getEntriesForSingleProject( projectId ) {
 	return retryWithDelay( async () => {
 		try {
-			const response = await axios.get( `${ process.env.PAYMO_API_URL }/entries?where=project_id=${ projectId }`, {
+			const response = await axios.get( `${ conf.PAYMO_API_URL }/entries?where=project_id=${ projectId }`, {
 				headers: { Authorization: getPaymoAuthHeader() }
 			} );
 			console.log( `Fetched ${ response.data.entries.length } entries for project with ID ${ projectId }` );

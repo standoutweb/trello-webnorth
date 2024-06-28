@@ -3,7 +3,7 @@ import express from 'express';
 import Trello from "trello";
 import requireAuth from './middlewares/requireAuth';
 import { getPaymoAuthHeader } from './utils/auth';
-import { getCreatedCardsCountAndSaveDataToSpreadsheet, getLastWeekActionsByIdList } from './controllers/trelloController';
+import { getCreatedCardsCount, getLastWeekActionsByIdList } from './controllers/trelloController';
 import { getLastWeekBillableHours } from './controllers/paymoController';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from './utils/googleSheets';
 import {
@@ -15,6 +15,7 @@ import {
 	fetchBoardSeconds, fetchGoogleUpdate
 } from './utils/helpers';
 import axios from "axios";
+import { conf } from "./conf";
 
 const router = express.Router();
 const trello = new Trello( process.env.KEY, process.env.TOKEN );
@@ -56,14 +57,14 @@ router.get( '/paymo/timelogs/:startDate/:endDate', requireAuth, async ( req, res
 
 	try {
 		const [ entries, users ] = await Promise.all( [
-			axios.get( `${ process.env.PAYMO_API_URL }/entries`, {
+			axios.get( `${ conf.PAYMO_API_URL }/entries`, {
 				headers: { Authorization: getPaymoAuthHeader() },
 				params: {
 					where: `time_interval in ("${ startDate }","${ endDate }")`
 				}
 			} ),
 
-			axios.get( `${ process.env.PAYMO_API_URL }/users`, {
+			axios.get( `${ conf.PAYMO_API_URL }/users`, {
 				headers: { Authorization: getPaymoAuthHeader() }
 			} )
 		] )
@@ -138,22 +139,27 @@ router.get( '/paymo/:weekNumber/:boardId/timelogs/', requireAuth, async ( req, r
 } );
 router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res) => {
 	const lastWeek = getWeekNumber() - 1;
-	const boardId = process.env.DAILY_BOARD_ID;
-	const listId = process.env.DONE_LIST_ID;
+	const boardId = conf.DAILY_BOARD_ID;
+	const doneBoardId = conf.DONE_BOARD_ID;
+	const listId = conf.DONE_LIST_ID;
 	endRow = 0;
 
 	try {
-		const { timeInSeconds, projectIds } = await fetchBoardSeconds(boardId, lastWeek);
+		res.json('Please wait')
+		const { timeInSeconds: dailyTimeInSeconds, projectIds: dailyProjectIds } = await fetchBoardSeconds(boardId, lastWeek);
+		new Promise(resolve => setTimeout(resolve, 4000));
+		const { timeInSeconds: doneTimeInSeconds, projectIds: doneProjectIds } = await fetchBoardSeconds(doneBoardId, lastWeek);
 
-		console.log('Time in seconds:', timeInSeconds);
+		// Sum up time in seconds for both boards
+		const totalTimeInSeconds = dailyTimeInSeconds + doneTimeInSeconds;
 
-		const googleResponse = await fetchGoogleUpdate(lastWeek, timeInSeconds);
+		console.log('Total Time in seconds:', totalTimeInSeconds);
+		console.log('Project IDs:', dailyProjectIds, doneProjectIds)
+		const googleResponse = await fetchGoogleUpdate(lastWeek, totalTimeInSeconds);
 		console.log('Google response:', googleResponse);
 
-		res.json(googleResponse);
-
-		const excludeProjectIds = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
-		let uniqueProjectIds = [...new Set(projectIds)];
+		const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
+		let uniqueProjectIds = [...new Set([...dailyProjectIds, ...doneProjectIds])];
 		uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
 		const billableTime = await getLastWeekBillableHours(uniqueProjectIds);
 		let billableTimeArray = [billableTime];
@@ -164,7 +170,10 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		let tasksMovedToDoneArray = [tasksMovedToDone];
 		await saveDataToSpreadsheet('F', tasksMovedToDoneArray);
 
-		await getCreatedCardsCountAndSaveDataToSpreadsheet(lastWeek, boardId);
+		const dailyCreatedCardsCount = await getCreatedCardsCount(lastWeek, boardId);
+		new Promise(resolve => setTimeout(resolve, 5000));
+
+		await saveDataToSpreadsheet('C', dailyCreatedCardsCount);
 
 	} catch (error) {
 		console.error(error);
@@ -211,7 +220,7 @@ router.get( '/cards/:cardShortLink/:pagination/timelogs', requireAuth, async ( r
 router.get( '/paymo/task/:taskID', requireAuth, async ( req, res ) => {
 	const { taskID } = req.params;
 	try {
-		const task = await axios.get( `${ process.env.PAYMO_API_URL }/tasks/${ taskID }`, {
+		const task = await axios.get( `${ conf.PAYMO_API_URL }/tasks/${ taskID }`, {
 			headers: { Authorization: getPaymoAuthHeader() }
 		} );
 
@@ -226,12 +235,14 @@ router.get('/google/:weekNumber/:timeInSeconds', requireAuth, async (req, res) =
 	const { weekNumber, timeInSeconds } = req.params;
 	const hours = convertMinutesToHours(convertSecondsToMinutes(timeInSeconds));
 	console.log(`Week ${weekNumber}, ${hours} hours matched.`);
+	new Promise(resolve => setTimeout(resolve, 1000));
 
 	// Get the current year
 	const currentYear = new Date().getFullYear();
 
 	try {
 		const result = await connectToSpreadsheet();
+		new Promise( resolve => setTimeout( resolve, 2000 ) );
 		const spreadsheetId = result.spreadsheetId;
 		let endRow = result.endRow;
 		const sheets = result.sheets;
@@ -265,7 +276,7 @@ router.get('/google/:weekNumber/:timeInSeconds', requireAuth, async (req, res) =
 router.get( '/slack', requireAuth, async ( req, res ) => {
 
 	const lastWeek = getWeekNumber() - 1;
-	const boardId = process.env.DAILY_BOARD_ID;
+	const boardId = conf.DAILY_BOARD_ID;
 	axios.get( `${ process.env.API_URL }/boards/${ boardId }/${ lastWeek }/seconds`, {
 		params: {
 			secret: process.env.SECRET_QUERY_PARAM_VALUE

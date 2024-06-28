@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getPaymoAuthHeader } from "./auth";
+import { conf } from "../conf";
 
 export function getWeekNumber(d = new Date()) {
 	d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -52,13 +53,13 @@ export function getCardCreationDate(cardId) {
 
 export async function retryWithDelay(fn, retries, delay) {
 	for (let attempt = 1; attempt <= retries; attempt++) {
+		await new Promise(resolve => setTimeout(resolve, delay));
 		try {
 			return await fn();
 		} catch (error) {
 			if (attempt === retries) {
 				throw error;
 			}
-			await new Promise(resolve => setTimeout(resolve, delay));
 		}
 	}
 }
@@ -69,7 +70,7 @@ export async function fetchBoardSeconds(boardId, weekNumber) {
 			params: { secret: process.env.SECRET_QUERY_PARAM_VALUE }
 		});
 		return response.data;
-	}, 3, 1000);
+	}, 3, 2000);
 }
 
 export async function fetchGoogleUpdate(weekNumber, timeInSeconds) {
@@ -85,7 +86,7 @@ export async function fetchGoogleUpdate(weekNumber, timeInSeconds) {
 export async function getBudgetHoursOfProjects( projectId ) {
 
 	try {
-		const response = await axios.get(`${process.env.PAYMO_API_URL}/projects/${projectId}`, {
+		const response = await axios.get(`${conf.PAYMO_API_URL}/projects/${projectId}`, {
 			headers: { Authorization: getPaymoAuthHeader() }
 		});
 		const lastWeek = getWeekNumber() - 1;

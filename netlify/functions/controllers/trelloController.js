@@ -1,12 +1,12 @@
 import Trello from 'trello';
 import { getWeekNumber, getListIdByName, getCardCreationDate, retryWithDelay } from '../utils/helpers';
-import { saveDataToSpreadsheet } from '../utils/googleSheets';
 import axios from "axios";
+import { conf } from "../conf";
 
 const trello = new Trello( process.env.KEY, process.env.TOKEN );
 const retryOptions = { maxRetries: 3, retryDelay: 1000 };
 
-export async function getCreatedCardsCountAndSaveDataToSpreadsheet(weekNumber, boardId) {
+export async function getCreatedCardsCount(weekNumber, boardId) {
 	try {
 		const cards = await trello.getCardsOnBoard(boardId);
 		let valuesArray = [0, 0, 0];
@@ -19,7 +19,7 @@ export async function getCreatedCardsCountAndSaveDataToSpreadsheet(weekNumber, b
 			}
 		});
 		valuesArray[0] = await getNewTasksCount();
-		await saveDataToSpreadsheet('C', valuesArray);
+		return valuesArray;
 	} catch (error) {
 		console.error('Error fetching cards:', error);
 	}
@@ -46,7 +46,7 @@ export async function getLastWeekActionsByIdList(idList) {
 }
 
 async function getNewTasksCount() {
-	const boardId = process.env.DAILY_BOARD_ID;
+	const boardId = conf.DAILY_BOARD_ID;
 
 	//TODO: Improve this function to set listId already in the environment variables
 	const listId = await getListIdByName( boardId, 'New Tasks' );

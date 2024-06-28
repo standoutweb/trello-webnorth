@@ -1,0 +1,7 @@
+export const conf = {
+	"PAYMO_API_URL": "https://app.paymoapp.com/api",
+	"DONE_LIST_ID": "65785dde81328e98a1575ca0",
+	"EXCLUDED_PAYMO_PROJECTS": "3140209,2518414",
+	"DONE_BOARD_ID": "65785d76b92b96a3a6286660",
+	"DAILY_BOARD_ID": "61483390071f5084f7480f0a"
+}

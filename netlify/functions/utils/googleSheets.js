@@ -40,7 +40,4 @@ export async function saveDataToSpreadsheet(sheetRange, values) {
 			values: [[...values]]
 		}
 	};
-
-	// Todo: The response is not being used, so we can remove it
-	const response = await sheets.spreadsheets.values.update(request);
 }
