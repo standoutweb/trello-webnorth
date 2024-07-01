@@ -1,4 +1,3 @@
-// /netlify/functions/routes.js
 import express from 'express';
 import Trello from "trello";
 import requireAuth from '../middlewares/requireAuth.js';
@@ -149,7 +148,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		const { timeInSeconds: dailyTimeInSeconds, projectIds: dailyProjectIds } = await fetchBoardSeconds(boardId, lastWeek);
 		new Promise(resolve => setTimeout(resolve, 500));
 		const { timeInSeconds: doneTimeInSeconds, projectIds: doneProjectIds } = await fetchBoardSeconds(doneBoardId, lastWeek);
-		res.json('Please wait.');
+
 		// Sum up time in seconds for both boards
 		const totalTimeInSeconds = dailyTimeInSeconds + doneTimeInSeconds;
 
@@ -172,10 +171,14 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		await saveDataToSpreadsheet('F', tasksMovedToDoneArray);
 
 		const dailyCreatedCardsCount = await getCreatedCardsCount(lastWeek, boardId);
-		new Promise(resolve => setTimeout(resolve, 500));
-
 		await saveDataToSpreadsheet('C', dailyCreatedCardsCount);
 
+		res.json({
+			totalTimeInSeconds,
+			billableTime,
+			tasksMovedToDone,
+			dailyCreatedCardsCount,
+		});
 	} catch (error) {
 		console.error(error);
 		res.status(500).send(error.toString());

@@ -62,6 +62,7 @@ export async function getLastWeekBillableHours( projectIds ) {
 
 		if ( budgetHours !== null ) {
 			const entries = await retryWithDelay( () => getEntriesForSingleProject( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+			await new Promise( resolve => setTimeout( resolve, 500 ) );
 			const totalTime = convertMinutesToHours(
 				convertSecondsToMinutes(
 					await retryWithDelay( () => getTotalTimeDurationForEntries( entries ), retryOptions.maxRetries, retryOptions.retryDelay )
