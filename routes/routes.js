@@ -20,14 +20,6 @@ const router = express.Router();
 const trello = new Trello( process.env.KEY, process.env.TOKEN );
 let endRow = 0;
 
-// CORS
-const allowedOrigins = ['http://localhost:3000', 'https://webnorth-internal.netlify.app'];
-router.use( ( req, res, next ) => {
-	res.header( 'Access-Control-Allow-Origin', allowedOrigins );
-	res.header( 'Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept' );
-	next();
-} );
-
 // Existing Trello integration routes
 router.get( '/boards', requireAuth, async ( req, res ) => {
 	try {
