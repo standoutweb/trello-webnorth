@@ -22,10 +22,23 @@ const requireAuth = (req, res, next) => {
 	}
 
 	const allowedUsers = JSON.parse(process.env.ALLOWED_USERS || '[]');
+	const allowedUserIds = JSON.parse(process.env.ALLOWED_USER_IDS || '[]');
 
 	// Check if the userEmail is in the allowedUsers list
 	if (!allowedUsers.includes(userEmail)) {
 		console.log('Unauthorized: User email not in allowed list');
+		return res.status(401).send('Unauthorized');
+	}
+
+	// Check if the userId is in the allowedUserIds list
+	if (!allowedUserIds.includes(userId)) {
+		console.log('Unauthorized: User ID not in allowed list');
+		return res.status(401).send('Unauthorized');
+	}
+
+	// check combination first userEmail with first userId matches
+	if (allowedUsers.indexOf(userEmail) !== allowedUserIds.indexOf(userId)) {
+		console.log('Unauthorized: User email and ID do not match');
 		return res.status(401).send('Unauthorized');
 	}
 
