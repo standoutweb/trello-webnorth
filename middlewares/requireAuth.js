@@ -21,6 +21,14 @@ const requireAuth = (req, res, next) => {
 		return res.status(401).send('Unauthorized');
 	}
 
+	const allowedUsers = JSON.parse(process.env.ALLOWED_USERS || '[]');
+
+	// Check if the userEmail is in the allowedUsers list
+	if (!allowedUsers.includes(userEmail)) {
+		console.log('Unauthorized: User email not in allowed list');
+		return res.status(401).send('Unauthorized');
+	}
+
 	console.log('Authorized via user information');
 	req.user = { email: userEmail, id: userId };
 	next();
