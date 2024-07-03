@@ -17,7 +17,7 @@ const corsOptionsDelegate = (req, callback) => {
 			origin: origin,
 			optionsSuccessStatus: 200,
 			methods: 'GET,POST,PUT,DELETE,OPTIONS',
-			allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization' // Include Authorization
+			allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-User-Email,X-User-Id' // Include Authorization
 		};
 	} else {
 		corsOptions = { origin: false }; // Disable CORS for this request
