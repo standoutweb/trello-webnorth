@@ -30,20 +30,47 @@
 		handleTimeLogSubmit();
 	}
 	
-	async function makeAuthRequest( url ) {
+	async function makeAuthRequest(url) {
 		const user = netlifyIdentity.currentUser();
 		const jwtToken = user ? await user.jwt() : null;
 		
+		console.log('Current user:', user);
+		console.log('JWT Token:', jwtToken);
+		
 		const headers = new Headers();
-		if ( jwtToken ) {
-			headers.append( "Authorization", `Bearer ${ jwtToken }` );
+		if (jwtToken) {
+			headers.append("Authorization", `Bearer ${jwtToken}`);
 		}
 		
-		const response = await fetch( url, { headers } );
-		if ( ! response.ok ) {
-			throw new Error( `HTTP error! status: ${ response.status }` );
+		// Log headers
+		headers.forEach((value, key) => {
+			console.log(`Header: ${key} = ${value}`);
+		});
+		
+		// Log URL
+		console.log('Request URL:', url);
+		
+		// Log Request Options
+		const requestOptions = {
+			headers
+		};
+		console.log('Request Options:', requestOptions);
+		
+		const response = await fetch(url, requestOptions);
+		
+		// Log the full response object
+		console.log('Response:', response);
+		
+		if (!response.ok) {
+			console.error('HTTP error! status:', response.status);
+			throw new Error(`HTTP error! status: ${response.status}`);
 		}
-		return response.json();
+		
+		// Log response JSON
+		const responseJson = await response.json();
+		console.log('Response JSON:', responseJson);
+		
+		return responseJson;
 	}
 	
 	async function loadBoards() {
