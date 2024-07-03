@@ -21,8 +21,10 @@ const router = express.Router();
 const trello = new Trello( process.env.KEY, process.env.TOKEN );
 let endRow = 0;
 
+const allowedOrigins = ['http://localhost:3000', 'https://webnorth-internal.netlify.app'];
+
 router.use( ( req, res, next ) => {
-	res.header( 'Access-Control-Allow-Origin', 'http://localhost:3000' ); // Or '*' for any origin
+	res.header( 'Access-Control-Allow-Origin', allowedOrigins );
 	res.header( 'Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept' );
 	next();
 } );
