@@ -7,15 +7,25 @@ dotenv.config();
 
 const app = express();
 
-const corsOptions = {
-	origin: ['http://localhost:3000', 'https://webnorth-internal.netlify.app'], // Allowed origins
-	optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
-	methods: 'GET,POST,PUT,DELETE,OPTIONS',
-	allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept'
+const allowedOrigins = ['http://localhost:3000', 'https://webnorth-internal.netlify.app'];
+
+const corsOptionsDelegate = (req, callback) => {
+	let corsOptions;
+	const origin = req.header('Origin');
+	if (allowedOrigins.includes(origin)) {
+		corsOptions = {
+			origin: origin,
+			optionsSuccessStatus: 200,
+			methods: 'GET,POST,PUT,DELETE,OPTIONS',
+			allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization' // Include Authorization
+		};
+	} else {
+		corsOptions = { origin: false }; // Disable CORS for this request
+	}
+	callback(null, corsOptions); // Callback expects two parameters: error and options
 };
 
-// Use CORS with the specified options
-app.use(cors(corsOptions));
+app.use(cors(corsOptionsDelegate));
 
 app.use('/api/', router);
 
