@@ -22,6 +22,8 @@
 		const headers = new Headers();
 		if (jwtToken) {
 			headers.append("Authorization", `Bearer ${jwtToken}`);
+			headers.append("X-User-Email", user.email);
+			headers.append("X-User-Id", user.id);
 		}
 		
 		// Log headers
@@ -34,7 +36,8 @@
 		
 		// Log Request Options
 		const requestOptions = {
-			headers
+			method: 'GET', // or 'POST' depending on your request type
+			headers: headers
 		};
 		console.log('Request Options:', requestOptions);
 		
