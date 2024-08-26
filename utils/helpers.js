@@ -92,7 +92,6 @@ export async function getBudgetHoursOfProjects( projectId ) {
 		const response = await axios.get(`${conf.PAYMO_API_URL}/projects/${projectId}`, {
 			headers: { Authorization: getPaymoAuthHeader() }
 		});
-		const lastWeek = getWeekNumber() - 1;
 		const project = response.data.projects[0];
 
 		if (project.budget_hours === null) {

@@ -40,7 +40,7 @@ async function getTotalTimeDurationForEntries( entries ) {
 	return totalDuration;
 }
 
-export async function getTotalTimeDurationForLastWeek( entries, weekNumber ) {
+export async function getTotalTimeDuration( entries, weekNumber ) {
 	let totalDuration = 0;
 	if ( Array.isArray( entries ) ) {
 		entries.forEach( entry => {
@@ -52,7 +52,7 @@ export async function getTotalTimeDurationForLastWeek( entries, weekNumber ) {
 	return totalDuration;
 }
 
-export async function getLastWeekBillableHours( projectIds ) {
+export async function getBillableHours( lastWeek, projectIds ) {
 	let billableTime = 0;
 
 	for ( let projectId of projectIds ) {
@@ -70,7 +70,7 @@ export async function getLastWeekBillableHours( projectIds ) {
 			);
 			const lastWeekTime = convertMinutesToHours(
 				convertSecondsToMinutes(
-					await retryWithDelay( () => getTotalTimeDurationForLastWeek( entries, getWeekNumber() - 1 ), retryOptions.maxRetries, retryOptions.retryDelay )
+					await retryWithDelay( () => getTotalTimeDuration( entries, lastWeek ), retryOptions.maxRetries, retryOptions.retryDelay )
 				)
 			);
 

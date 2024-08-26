@@ -2,8 +2,8 @@ import express from 'express';
 import Trello from "trello";
 import requireAuth from '../middlewares/requireAuth.js';
 import { getPaymoAuthHeader } from '../utils/auth.js';
-import { getCreatedCardsCount, getLastWeekActionsByIdList } from '../controllers/trelloController.js';
-import { getLastWeekBillableHours } from '../controllers/paymoController.js';
+import { getCreatedCardsCount, getActionsByIdList } from '../controllers/trelloController.js';
+import { getBillableHours } from '../controllers/paymoController.js';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets.js';
 import {
 	convertSecondsToMinutes,
@@ -156,12 +156,12 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		let uniqueProjectIds = [...new Set([...dailyProjectIds, ...doneProjectIds])];
 		uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
 		console.log('Unique project IDs:', uniqueProjectIds)
-		const billableTime = await getLastWeekBillableHours(uniqueProjectIds);
+		const billableTime = await getBillableHours(lastWeek,uniqueProjectIds);
 		let billableTimeArray = [billableTime];
 		console.log('Billable time:', billableTime);
 		await saveDataToSpreadsheet('G', billableTimeArray);
 
-		const tasksMovedToDone = await getLastWeekActionsByIdList(listId);
+		const tasksMovedToDone = await getActionsByIdList(lastWeek, listId);
 		let tasksMovedToDoneArray = [tasksMovedToDone];
 		await saveDataToSpreadsheet('F', tasksMovedToDoneArray);
 

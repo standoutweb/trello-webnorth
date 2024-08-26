@@ -18,24 +18,23 @@ export async function getCreatedCardsCount(weekNumber, boardId) {
 				valuesArray[2]++; // created before the previous week
 			}
 		});
-		valuesArray[0] = await getNewTasksCount();
+		valuesArray[0] = await getNewTasksCount(weekNumber);
 		return valuesArray;
 	} catch (error) {
 		console.error('Error fetching cards:', error);
 	}
 }
 
-export async function getLastWeekActionsByIdList(idList) {
+export async function getActionsByIdList(lastWeek, idList) {
 	return retryWithDelay(async () => {
 		try {
 			const url = `https://api.trello.com/1/lists/${idList}/actions?key=${process.env.KEY}&token=${process.env.TOKEN}&limit=1000`;
 			const response = await axios.get(url);
 			const actionsList = response.data;
-			const lastWeekNumber = getWeekNumber() - 1;
 
 			const actions = actionsList.filter(action => {
 				const actionDate = new Date(action.date);
-				return getWeekNumber(actionDate) === lastWeekNumber;
+				return getWeekNumber(actionDate) === lastWeek;
 			});
 			return actions.length;
 		} catch (error) {
@@ -45,7 +44,7 @@ export async function getLastWeekActionsByIdList(idList) {
 	}, retryOptions.maxRetries, retryOptions.retryDelay);
 }
 
-async function getNewTasksCount() {
+async function getNewTasksCount(weekNumber) {
 	const boardId = conf.DAILY_BOARD_ID;
 
 	//TODO: Improve this function to set listId already in the environment variables
@@ -54,10 +53,9 @@ async function getNewTasksCount() {
 		const url = `https://api.trello.com/1/lists/${ listId }/actions?key=${ process.env.KEY }&token=${ process.env.TOKEN }&limit=1000`;
 		const response = await axios.get( url );
 		const actionsList = response.data;
-		const lastWeekNumber = getWeekNumber() - 1;
 
 		const cardShortLinks = actionsList
-			.filter( action => getWeekNumber( new Date( action.date ) ) === lastWeekNumber )
+			.filter( action => getWeekNumber( new Date( action.date ) ) === weekNumber )
 			.map( action => action.data.card.shortLink );
 
 		const uniqueCardShortLinks = [ ...new Set( cardShortLinks ) ];
