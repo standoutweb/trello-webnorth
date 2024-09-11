@@ -4,7 +4,7 @@ import Trello from "trello";
 import requireAuth from '../middlewares/requireAuth';
 import { getPaymoAuthHeader } from '../utils/auth';
 import { getCreatedCardsCount, getLastWeekActionsByIdList } from '../controllers/trelloController';
-import { getLastWeekBillableHours } from '../controllers/paymoController';
+import { getLastWeekBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser } from '../controllers/paymoController';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets';
 import {
 	convertSecondsToMinutes,
@@ -178,11 +178,28 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 
 		await saveDataToSpreadsheet('C', dailyCreatedCardsCount);
 
+		const vouchersList = await getProjectsContainingVoucher();
+		const vouchersBillableTime = await getLastWeekBillableHours(vouchersList);
+		let vouchersBillableTimeArray = [vouchersBillableTime];
+		console.log('Vouchers billable time:', vouchersBillableTime);
+		await saveDataToSpreadsheet('H', vouchersBillableTimeArray);
+
 	} catch (error) {
 		console.error(error);
 		res.status(500).send(error.toString());
 	}
 });
+
+router.get( '/paymo/users/', requireAuth, async ( req, res ) => {
+	const users = await getActiveUsersList();
+	const weekNumber = 35;
+	res.json(users);
+	for (const user of users) {
+		console.log(`user - ${user.name}`);
+		const usersTasks = await getSpendTimeForUser(weekNumber, user.id);
+		console.log(usersTasks);
+	}
+})
 
 router.get( '/cards/:cardShortLink/:pagination/timelogs', requireAuth, async ( req, res ) => {
 	try {
