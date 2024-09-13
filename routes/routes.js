@@ -3,7 +3,7 @@ import Trello from "trello";
 import requireAuth from '../middlewares/requireAuth.js';
 import { getPaymoAuthHeader } from '../utils/auth.js';
 import { getCreatedCardsCount, getActionsByIdList } from '../controllers/trelloController.js';
-import { getBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser } from '../controllers/paymoController';
+import { getBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser } from '../controllers/paymoController.js';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets.js';
 import {
 	convertSecondsToMinutes,
