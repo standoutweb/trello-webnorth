@@ -168,6 +168,12 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		const dailyCreatedCardsCount = await getCreatedCardsCount(lastWeek, boardId);
 		await saveDataToSpreadsheet('C', dailyCreatedCardsCount);
 
+		const vouchersList = await getProjectsContainingVoucher();
+		const vouchersBillableTime = await getLastWeekBillableHours(vouchersList);
+		let vouchersBillableTimeArray = [vouchersBillableTime];
+		console.log('Vouchers billable time:', vouchersBillableTime);
+		await saveDataToSpreadsheet('H', vouchersBillableTimeArray);
+
 		res.json({
 			totalTimeInSeconds,
 			billableTime,
