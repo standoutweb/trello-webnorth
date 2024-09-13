@@ -83,3 +83,172 @@ export async function getBillableHours( lastWeek, projectIds ) {
 
 	return billableTime;
 }
+
+export async function getProjectsContainingVoucher() {
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+
+	try {
+		const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
+			headers: { Authorization: getPaymoAuthHeader() }
+		});
+		const projects = response.data.projects;
+		const voucherProjectIds = projects
+			.filter(project => !excludedProjects.includes(project.id) && project.name.includes('Voucher') && project.active === true)
+			.map(project => project.id);
+		return voucherProjectIds;
+	} catch (error) {
+		console.error('Error fetching projects:', error);
+		throw error;
+	}
+}
+
+export async function getListOfProjects() {
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+
+	try {
+		const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
+			headers: { Authorization: getPaymoAuthHeader() }
+		});
+		const projects = response.data.projects;
+		const filteredProjects = projects
+			.filter(project => !excludedProjects.includes(project.id) && project.active === true)
+			.map(project => project.id);
+		return filteredProjects;
+	} catch (error) {
+		console.error('Error fetching projects:', error);
+		throw error;
+	}
+}
+
+export async function getActiveUsersList() {
+	try {
+		const response = await axios.get(`${conf.PAYMO_API_URL}/users?where=active=true`, {
+			headers: { Authorization: getPaymoAuthHeader() }
+		});
+		const users = response.data.users;
+		return users;
+	} catch (error) {
+		console.error('Error fetching users:', error);
+		throw error;
+	}
+}
+export async function getSpendTimeForUser(weekNumber, userId) {
+
+	try {
+		const response = await axios.get(`${conf.PAYMO_API_URL}/entries?where=user_id=${userId}`, {
+			headers: { Authorization: getPaymoAuthHeader() }
+		});
+		const entries = response.data.entries;
+		const currentYear = new Date().getFullYear();
+
+		const filteredEntries = entries.filter(entry => {
+			let entryStart, entryEnd, entryStartWeek, entryEndWeek, entryStartYear, entryEndYear;
+			const currentYear = new Date().getFullYear();
+
+			if (entry.start_time && entry.end_time) {
+				entryStart = new Date(entry.start_time);
+				entryEnd = new Date(entry.end_time);
+				entryStartWeek = getWeekNumber(entryStart);
+				entryEndWeek = getWeekNumber(entryEnd);
+				entryStartYear = entryStart.getFullYear();
+				entryEndYear = entryEnd.getFullYear();
+			} else if (entry.date) {
+				entryStart = new Date(entry.date);
+				entryEnd = new Date(entry.date);
+				entryStartWeek = getWeekNumber(entryStart);
+				entryEndWeek = getWeekNumber(entryEnd);
+				entryStartYear = entryStart.getFullYear();
+				entryEndYear = entryEnd.getFullYear();
+			}
+
+			return (entryStartWeek === weekNumber || entryEndWeek === weekNumber) && (entryStartYear === currentYear || entryEndYear === currentYear);
+		});
+
+		const projectTimeMap = filteredEntries.reduce((acc, entry) => {
+
+			if (!acc[entry.project_id]) {
+				acc[entry.project_id] = 0;
+			}
+			acc[entry.project_id] += entry.duration;
+
+			return acc;
+		}, {});
+
+		const projectsWithTime = Object.keys(projectTimeMap).map(projectId => ({
+			projectId: parseInt(projectId, 10),
+			spendTime: convertMinutesToHours(convertSecondsToMinutes(projectTimeMap[projectId]))
+		}));
+		console.log('projects with time:', projectsWithTime);
+		return getBillableHoursForWeek( weekNumber, projectsWithTime );
+
+	} catch (error) {
+		console.error('Error fetching projects:', error);
+		throw error;
+	}
+}
+
+export async function getBillableHoursForWeek(weekNumber, projects) {
+	let billableTime = 0;
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+
+	for ( let project of projects ) {
+		const projectId = project.projectId;
+		const projectTime = project.spendTime;
+		if (excludedProjects.includes(projectId)) {
+			continue;
+		}
+
+		const budgetHours = await retryWithDelay( () => getBudgetHoursOfProjects( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+		await new Promise( resolve => setTimeout( resolve, 1000 ) );
+
+		if ( budgetHours !== null ) {
+			const entries = await retryWithDelay( () => getEntriesForSingleProject( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+			const totalTime = convertMinutesToHours(
+				convertSecondsToMinutes(
+					await retryWithDelay(() => getTotalTimeDurationUpToWeek(entries, weekNumber), retryOptions.maxRetries, retryOptions.retryDelay)
+				)
+			);
+
+			if ( budgetHours - ( totalTime - projectTime ) > 0 ) {
+				billableTime += Math.min( projectTime, budgetHours - ( totalTime - projectTime ) );
+			}
+			await new Promise( resolve => setTimeout( resolve, 1000 ) );
+		}
+	}
+
+	return billableTime;
+}
+
+async function getTotalTimeDurationUpToWeek(entries, weekNumber) {
+	let totalDuration = 0;
+	const currentYear = new Date().getFullYear();
+
+	if (Array.isArray(entries)) {
+		entries.forEach(entry => {
+			if (entry && typeof entry === 'object') {
+				let entryStart, entryEnd, entryStartWeek, entryEndWeek, entryStartYear, entryEndYear;
+
+				if (entry.start_time && entry.end_time) {
+					entryStart = new Date(entry.start_time);
+					entryEnd = new Date(entry.end_time);
+					entryStartWeek = getWeekNumber(entryStart);
+					entryEndWeek = getWeekNumber(entryEnd);
+					entryStartYear = entryStart.getFullYear();
+					entryEndYear = entryEnd.getFullYear();
+				} else if (entry.date) {
+					entryStart = new Date(entry.date);
+					entryEnd = new Date(entry.date);
+					entryStartWeek = getWeekNumber(entryStart);
+					entryEndWeek = getWeekNumber(entryEnd);
+					entryStartYear = entryStart.getFullYear();
+					entryEndYear = entryEnd.getFullYear();
+				}
+
+				if ((entryStartYear === currentYear || entryEndYear === currentYear) && (entryStartWeek <= weekNumber || entryEndWeek <= weekNumber)) {
+					totalDuration += entry.duration;
+				}
+			}
+		});
+	}
+	return totalDuration;
+}

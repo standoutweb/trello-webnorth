@@ -3,7 +3,7 @@ import Trello from "trello";
 import requireAuth from '../middlewares/requireAuth.js';
 import { getPaymoAuthHeader } from '../utils/auth.js';
 import { getCreatedCardsCount, getActionsByIdList } from '../controllers/trelloController.js';
-import { getBillableHours } from '../controllers/paymoController.js';
+import { getBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser } from '../controllers/paymoController';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets.js';
 import {
 	convertSecondsToMinutes,
@@ -294,5 +294,17 @@ router.get( '/slack', requireAuth, async ( req, res ) => {
 		}
 	} )
 } );
+
+router.get( '/paymo/users/', requireAuth, async ( req, res ) => {
+	const users = await getActiveUsersList();
+	const weekNumber = 35;
+	res.json(users);
+	for (const user of users) {
+		console.log(`user - ${user.name}`);
+		const usersTasks = await getSpendTimeForUser(weekNumber, user.id);
+		console.log(usersTasks);
+	}
+})
+
 
 export default router;
