@@ -252,3 +252,28 @@ async function getTotalTimeDurationUpToWeek(entries, weekNumber) {
 	}
 	return totalDuration;
 }
+
+export async function getVouchersRemainingTime(vouchersList, lastWeek){
+	if (Array.isArray(vouchersList)) {
+		let totalRemainingHours = 0;
+		for (const projectId of vouchersList) {
+			const budgetHours = await retryWithDelay( () => getBudgetHoursOfProjects( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+			await new Promise( resolve => setTimeout( resolve, 1000 ) );
+			let totalTime = 0;
+			if ( budgetHours !== null ) {
+				const entries = await retryWithDelay( () => getEntriesForSingleProject( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+				totalTime = convertMinutesToHours(
+					convertSecondsToMinutes(
+						await retryWithDelay(() => getTotalTimeDurationUpToWeek(entries, lastWeek), retryOptions.maxRetries, retryOptions.retryDelay)
+					)
+				);
+				await new Promise( resolve => setTimeout( resolve, 1000 ) );
+			}
+			if(budgetHours - totalTime > 0){
+				const remainingHours = budgetHours - totalTime;
+				totalRemainingHours += remainingHours;
+			}
+		}
+		return totalRemainingHours;
+	}
+}
