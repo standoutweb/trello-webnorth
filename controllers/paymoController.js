@@ -89,16 +89,22 @@ export async function getProjectsContainingVoucher() {
 	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
 		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
 		: [];
-
+	const voucherProjectsStatusId = process.env.VOUCHER_PROJECTS_STATUS_ID
+		? parseInt(process.env.VOUCHER_PROJECTS_STATUS_ID, 10)
+		: '';
 	try {
-		const projects = await getProjects();
-		const voucherProjectIds = Object.values(projects)
-			.filter(project =>
-				!excludedProjects.includes(project.id) &&
-				project.status_id === 897123 &&
-				project.active === true)
-			.map(project => project.id);
-		return voucherProjectIds;
+		if ( voucherProjectsStatusId !== '' ) {
+			const projects = await getProjects();
+			const voucherProjectIds = Object.values(projects)
+				.filter(project =>
+					!excludedProjects.includes(project.id) &&
+					project.status_id === voucherProjectsStatusId &&
+					project.active === true)
+				.map(project => project.id);
+			return voucherProjectIds;
+		} else {
+			console.error('Status ID for projects not set');
+		}
 	} catch (error) {
 		console.error('Error fetching projects:', error);
 		throw error;

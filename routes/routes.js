@@ -190,18 +190,7 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		console.log('Invoicable time per person:', voucherRemainingTimePerUser);
 		await saveDataToSpreadsheet('B', vouchersRemainingArray, 'Overall stats');
 
-		/*const message = createSummaryMessage(lastWeek, {
-			dailyTimeInSeconds,
-			dailyCreatedCardsCount,
-			tasksMovedToDone,
-			billableTime,
-			vouchersBillableTime,
-			vouchersRemaining,
-			voucherRemainingTimePerUser,
-			allProjectsBillableTime
-		});*/
-
-		//delete the cache
+		//delete the cache file
 		await deleteCache('projects.json');
 
 		res.json({
