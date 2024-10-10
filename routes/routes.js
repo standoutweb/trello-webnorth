@@ -4,6 +4,7 @@ import requireAuth from '../middlewares/requireAuth.js';
 import { getPaymoAuthHeader } from '../utils/auth.js';
 import { getCreatedCardsCount, getActionsByIdList } from '../controllers/trelloController.js';
 import { getBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser, getListOfProjects, getVouchersRemainingTime } from '../controllers/paymoController.js';
+//import { createSummaryMessage } from '../controllers/slackController.js';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets.js';
 import {
 	convertSecondsToMinutes,
@@ -11,7 +12,9 @@ import {
 	getWeekNumber,
 	includesTrelloLink,
 	getStartAndEndDate,
-	fetchBoardSeconds, fetchGoogleUpdate
+	fetchBoardSeconds,
+	fetchGoogleUpdate,
+	deleteCache
 } from '../utils/helpers.js';
 import axios from "axios";
 import { conf } from "../utils/conf.js";
@@ -152,9 +155,11 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		const googleResponse = await fetchGoogleUpdate(lastWeek, totalTimeInSeconds);
 		console.log('Google response:', googleResponse);
 
-		const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
 		let uniqueProjectIds = [...new Set([...dailyProjectIds, ...doneProjectIds])];
-		uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
+		if( conf.EXCLUDED_PAYMO_PROJECTS ) {
+			const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
+			uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
+		}
 		console.log('Unique project IDs:', uniqueProjectIds)
 		const billableTime = await getBillableHours(lastWeek,uniqueProjectIds);
 		let billableTimeArray = [billableTime];
@@ -180,12 +185,24 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		console.log('All projects billable time:', allProjectsBillableTime);
 		await saveDataToSpreadsheet('C', allProjectsBillableTimeArray, 'Overall stats');
 
-		const vouchersRemaining = await getVouchersRemainingTime(vouchersList, getWeekNumber());
-		const voucherRemainingTimePerUser = vouchersRemaining/19;
-		const totalValue = vouchersRemaining + '( ' + voucherRemainingTimePerUser + ' )';
-		let vouchersRemainingArray = [totalValue];
-		console.log('Vouchers remaining:', vouchersRemaining);
+		const voucherRemainingTimePerUser = allProjectsBillableTime/19;
+		let vouchersRemainingArray = [voucherRemainingTimePerUser];
+		console.log('Invoicable time per person:', voucherRemainingTimePerUser);
 		await saveDataToSpreadsheet('B', vouchersRemainingArray, 'Overall stats');
+
+		/*const message = createSummaryMessage(lastWeek, {
+			dailyTimeInSeconds,
+			dailyCreatedCardsCount,
+			tasksMovedToDone,
+			billableTime,
+			vouchersBillableTime,
+			vouchersRemaining,
+			voucherRemainingTimePerUser,
+			allProjectsBillableTime
+		});*/
+
+		//delete the cache
+		await deleteCache('projects.json');
 
 		res.json({
 			totalTimeInSeconds,

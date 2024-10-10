@@ -5,7 +5,8 @@ import {
 	convertMinutesToHours,
 	includesTrelloLink,
 	retryWithDelay,
-	getBudgetHoursOfProjects
+	getBudgetHoursOfProjects,
+	getProjects
 } from '../utils/helpers.js';
 import { getPaymoAuthHeader } from "../utils/auth.js";
 import { conf } from "../utils/conf.js";
@@ -85,15 +86,17 @@ export async function getBillableHours( lastWeek, projectIds ) {
 }
 
 export async function getProjectsContainingVoucher() {
-	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
+		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
+		: [];
 
 	try {
-		const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
-			headers: { Authorization: getPaymoAuthHeader() }
-		});
-		const projects = response.data.projects;
-		const voucherProjectIds = projects
-			.filter(project => !excludedProjects.includes(project.id) && project.name.includes('Voucher') && project.active === true)
+		const projects = await getProjects();
+		const voucherProjectIds = Object.values(projects)
+			.filter(project =>
+				!excludedProjects.includes(project.id) &&
+				project.status_id === 897123 &&
+				project.active === true)
 			.map(project => project.id);
 		return voucherProjectIds;
 	} catch (error) {
@@ -103,14 +106,13 @@ export async function getProjectsContainingVoucher() {
 }
 
 export async function getListOfProjects() {
-	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
+		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
+		: [];
 
 	try {
-		const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
-			headers: { Authorization: getPaymoAuthHeader() }
-		});
-		const projects = response.data.projects;
-		const filteredProjects = projects
+		const projects = await getProjects();
+		const filteredProjects = Object.values(projects)
 			.filter(project => !excludedProjects.includes(project.id) && project.active === true)
 			.map(project => project.id);
 		return filteredProjects;
@@ -189,7 +191,9 @@ export async function getSpendTimeForUser(weekNumber, userId) {
 
 export async function getBillableHoursForWeek(weekNumber, projects) {
 	let billableTime = 0;
-	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
+		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
+		: [];
 
 	for ( let project of projects ) {
 		const projectId = project.projectId;

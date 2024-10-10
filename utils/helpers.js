@@ -1,9 +1,36 @@
+import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import axios from "axios";
 import { getPaymoAuthHeader } from "./auth.js";
 import { conf } from "./conf.js";
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const cacheDir = path.join(__dirname, '..', 'cache');
+
+export async function readCache(fileName) {
+	const filePath = path.join(cacheDir, fileName);
+	try {
+		const data = await fs.readFile(filePath, 'utf-8');
+		return JSON.parse(data);
+	} catch (error) {
+		return {};
+	}
+}
+
+export async function writeCache(fileName, data) {
+	const filePath = path.join(cacheDir, fileName);
+	await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+}
+
+export async function deleteCache(fileName) {
+	const filePath = path.join(cacheDir, fileName);
+	await fs.unlink(filePath);
+}
 
 export function getWeekNumber(d = new Date()) {
 	d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -86,21 +113,49 @@ export async function fetchGoogleUpdate(weekNumber, timeInSeconds) {
 	}, 3, 1000);
 }
 
-export async function getBudgetHoursOfProjects( projectId ) {
+async function fetchAllProjects() {
+	const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
+		headers: { Authorization: getPaymoAuthHeader() }
+	});
 
-	try {
-		const response = await axios.get(`${conf.PAYMO_API_URL}/projects/${projectId}`, {
-			headers: { Authorization: getPaymoAuthHeader() }
-		});
-		const project = response.data.projects[0];
-
+	let projects = response.data.projects;
+	projects.forEach(project => {
 		if (project.budget_hours === null) {
 			project.budget_hours = 0;
 		}
+		projects[project.id] = project;
+	});
 
-		console.log(`Fetched project with ID ${projectId} and budget hours ${project.budget_hours}`);
+	return response.data.projects;
+}
 
-		return project.budget_hours;
+export async function getProjects() {
+	let cache = await readCache('projects.json');
+
+	if (Object.keys(cache).length === 0) {
+		const allProjects = await fetchAllProjects();
+		allProjects.forEach(project => {
+			if (project.budget_hours === null) {
+				project.budget_hours = 0;
+			}
+			cache[project.id] = project;
+		});
+		writeCache('projects.json', cache);
+	}
+
+	return cache;
+}
+
+export async function getBudgetHoursOfProjects( projectId ) {
+	try {
+		let projects = await getProjects();
+
+		if (projects[projectId]) {
+			return projects[projectId].budget_hours;
+		} else {
+			console.error(`Project ID ${projectId} not found in cache.`);
+			return null;
+		}
 	} catch (error) {
 		console.error(`Error fetching project with ID ${projectId}:`, error);
 	}
