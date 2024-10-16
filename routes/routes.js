@@ -3,7 +3,8 @@ import Trello from "trello";
 import requireAuth from '../middlewares/requireAuth.js';
 import { getPaymoAuthHeader } from '../utils/auth.js';
 import { getCreatedCardsCount, getActionsByIdList } from '../controllers/trelloController.js';
-import { getBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser } from '../controllers/paymoController.js';
+import { getBillableHours, getProjectsContainingVoucher, getActiveUsersList, getSpendTimeForUser, getListOfProjects, getVouchersRemainingTime } from '../controllers/paymoController.js';
+//import { createSummaryMessage } from '../controllers/slackController.js';
 import { saveDataToSpreadsheet, connectToSpreadsheet } from '../utils/googleSheets.js';
 import {
 	convertSecondsToMinutes,
@@ -11,7 +12,9 @@ import {
 	getWeekNumber,
 	includesTrelloLink,
 	getStartAndEndDate,
-	fetchBoardSeconds, fetchGoogleUpdate
+	fetchBoardSeconds,
+	fetchGoogleUpdate,
+	deleteCache
 } from '../utils/helpers.js';
 import axios from "axios";
 import { conf } from "../utils/conf.js";
@@ -152,9 +155,11 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		const googleResponse = await fetchGoogleUpdate(lastWeek, totalTimeInSeconds);
 		console.log('Google response:', googleResponse);
 
-		const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
 		let uniqueProjectIds = [...new Set([...dailyProjectIds, ...doneProjectIds])];
-		uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
+		if( conf.EXCLUDED_PAYMO_PROJECTS ) {
+			const excludeProjectIds = conf.EXCLUDED_PAYMO_PROJECTS.split(',').map(Number);
+			uniqueProjectIds = uniqueProjectIds.filter(projectId => !excludeProjectIds.includes(projectId));
+		}
 		console.log('Unique project IDs:', uniqueProjectIds)
 		const billableTime = await getBillableHours(lastWeek,uniqueProjectIds);
 		let billableTimeArray = [billableTime];
@@ -173,6 +178,20 @@ router.get('/last-week-hours-daily-send-to-sheets', requireAuth, async (req, res
 		let vouchersBillableTimeArray = [vouchersBillableTime];
 		console.log('Vouchers billable time:', vouchersBillableTime);
 		await saveDataToSpreadsheet('H', vouchersBillableTimeArray);
+
+		const allProjectsList = await getListOfProjects();
+		const allProjectsBillableTime = await getBillableHours(lastWeek, allProjectsList);
+		let allProjectsBillableTimeArray = [allProjectsBillableTime];
+		console.log('All projects billable time:', allProjectsBillableTime);
+		await saveDataToSpreadsheet('C', allProjectsBillableTimeArray, 'Overall stats');
+
+		const voucherRemainingTimePerUser = allProjectsBillableTime/19;
+		let vouchersRemainingArray = [voucherRemainingTimePerUser];
+		console.log('Invoicable time per person:', voucherRemainingTimePerUser);
+		await saveDataToSpreadsheet('B', vouchersRemainingArray, 'Overall stats');
+
+		//delete the cache file
+		await deleteCache('projects.json');
 
 		res.json({
 			totalTimeInSeconds,
@@ -241,35 +260,50 @@ router.get('/google/:weekNumber/:timeInSeconds', requireAuth, async (req, res) =
 	const hours = convertMinutesToHours(convertSecondsToMinutes(timeInSeconds));
 	console.log(`Week ${weekNumber}, ${hours} hours matched.`);
 
-	// Get the current year
 	const currentYear = new Date().getFullYear();
+	const formattedWeekNumber = String(weekNumber).padStart(2, '0');
+	const formattedWeek = `${formattedWeekNumber},${currentYear}`;
 
 	try {
-		const result = await connectToSpreadsheet();
-		const spreadsheetId = result.spreadsheetId;
-		let endRow = result.endRow;
-		const sheets = result.sheets;
+		const resultOverall = await connectToSpreadsheet('Overall stats');
+		const spreadsheetIdOverall = resultOverall.spreadsheetId;
+		let endRowOverall = resultOverall.endRowOverall;
+		const sheetsOverall = resultOverall.sheets;
 
-		let nextEmptyRow = endRow + 1;
-		let range = `Sheet1!A${nextEmptyRow}`;
+		let nextEmptyRowOverall = endRowOverall + 1;
+		let rangeOverall = `'Overall stats'!A${nextEmptyRowOverall}`;
 
-		// Format weekNumber to have leading zeros if necessary
-		const formattedWeekNumber = String(weekNumber).padStart(2, '0');
+		const requestOverall = {
+			spreadsheetId: spreadsheetIdOverall,
+			range: rangeOverall,
+			valueInputOption: 'RAW',
+			resource: {
+				values: [[formattedWeek]]
+			}
+		};
 
-		// Create the formatted week string
-		const formattedWeek = `${formattedWeekNumber},${currentYear}`;
+		const responseOverall = await sheetsOverall.spreadsheets.values.update(requestOverall);
 
-		const request = {
-			spreadsheetId,
-			range,
+		const resultDaily = await connectToSpreadsheet('Daily stats');
+		const spreadsheetIdDaily = resultDaily.spreadsheetId;
+		let endRowDaily = resultDaily.endRow;
+		const sheetsDaily = resultDaily.sheets;
+
+		let nextEmptyRowDaily = endRowDaily + 1;
+		let rangeDaily = `'Daily stats'!A${nextEmptyRowDaily}`;
+
+		const requestDaily = {
+			spreadsheetId: spreadsheetIdDaily,
+			range: rangeDaily,
 			valueInputOption: 'RAW',
 			resource: {
 				values: [[formattedWeek, `${hours}`]]
 			}
 		};
 
-		const response = await sheets.spreadsheets.values.update(request);
-		res.json(response.data);
+		const responseDaily = await sheetsDaily.spreadsheets.values.update(requestDaily);
+
+		res.json(responseDaily.data);
 	} catch (error) {
 		console.error(error);
 		res.status(500).send(error.toString());

@@ -5,7 +5,8 @@ import {
 	convertMinutesToHours,
 	includesTrelloLink,
 	retryWithDelay,
-	getBudgetHoursOfProjects
+	getBudgetHoursOfProjects,
+	getProjects
 } from '../utils/helpers.js';
 import { getPaymoAuthHeader } from "../utils/auth.js";
 import { conf } from "../utils/conf.js";
@@ -85,17 +86,25 @@ export async function getBillableHours( lastWeek, projectIds ) {
 }
 
 export async function getProjectsContainingVoucher() {
-	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
-
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
+		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
+		: [];
+	const voucherProjectsStatusId = process.env.VOUCHER_PROJECTS_STATUS_ID
+		? parseInt(process.env.VOUCHER_PROJECTS_STATUS_ID, 10)
+		: '';
 	try {
-		const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
-			headers: { Authorization: getPaymoAuthHeader() }
-		});
-		const projects = response.data.projects;
-		const voucherProjectIds = projects
-			.filter(project => !excludedProjects.includes(project.id) && project.name.includes('Voucher') && project.active === true)
-			.map(project => project.id);
-		return voucherProjectIds;
+		if ( voucherProjectsStatusId !== '' ) {
+			const projects = await getProjects();
+			const voucherProjectIds = Object.values(projects)
+				.filter(project =>
+					!excludedProjects.includes(project.id) &&
+					project.status_id === voucherProjectsStatusId &&
+					project.active === true)
+				.map(project => project.id);
+			return voucherProjectIds;
+		} else {
+			console.error('Status ID for projects not set');
+		}
 	} catch (error) {
 		console.error('Error fetching projects:', error);
 		throw error;
@@ -103,14 +112,13 @@ export async function getProjectsContainingVoucher() {
 }
 
 export async function getListOfProjects() {
-	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
+		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
+		: [];
 
 	try {
-		const response = await axios.get(`${conf.PAYMO_API_URL}/projects`, {
-			headers: { Authorization: getPaymoAuthHeader() }
-		});
-		const projects = response.data.projects;
-		const filteredProjects = projects
+		const projects = await getProjects();
+		const filteredProjects = Object.values(projects)
 			.filter(project => !excludedProjects.includes(project.id) && project.active === true)
 			.map(project => project.id);
 		return filteredProjects;
@@ -189,7 +197,9 @@ export async function getSpendTimeForUser(weekNumber, userId) {
 
 export async function getBillableHoursForWeek(weekNumber, projects) {
 	let billableTime = 0;
-	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10));
+	const excludedProjects = process.env.EXCLUDED_PAYMO_PROJECTS
+		? process.env.EXCLUDED_PAYMO_PROJECTS.split(',').map(id => parseInt(id, 10))
+		: [];
 
 	for ( let project of projects ) {
 		const projectId = project.projectId;
@@ -251,4 +261,29 @@ async function getTotalTimeDurationUpToWeek(entries, weekNumber) {
 		});
 	}
 	return totalDuration;
+}
+
+export async function getVouchersRemainingTime(vouchersList, lastWeek){
+	if (Array.isArray(vouchersList)) {
+		let totalRemainingHours = 0;
+		for (const projectId of vouchersList) {
+			const budgetHours = await retryWithDelay( () => getBudgetHoursOfProjects( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+			await new Promise( resolve => setTimeout( resolve, 1000 ) );
+			let totalTime = 0;
+			if ( budgetHours !== null ) {
+				const entries = await retryWithDelay( () => getEntriesForSingleProject( projectId ), retryOptions.maxRetries, retryOptions.retryDelay );
+				totalTime = convertMinutesToHours(
+					convertSecondsToMinutes(
+						await retryWithDelay(() => getTotalTimeDurationUpToWeek(entries, lastWeek), retryOptions.maxRetries, retryOptions.retryDelay)
+					)
+				);
+				await new Promise( resolve => setTimeout( resolve, 1000 ) );
+			}
+			if(budgetHours - totalTime > 0){
+				const remainingHours = budgetHours - totalTime;
+				totalRemainingHours += remainingHours;
+			}
+		}
+		return totalRemainingHours;
+	}
 }
