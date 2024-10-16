@@ -24,7 +24,13 @@ export async function readCache(fileName) {
 
 export async function writeCache(fileName, data) {
 	const filePath = path.join(cacheDir, fileName);
-	await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+	try {
+		// Ensure the cache directory exists
+		await fs.mkdir(cacheDir, { recursive: true });
+		await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+	} catch (error) {
+		console.error(`Error writing cache file ${filePath}:`, error);
+	}
 }
 
 export async function deleteCache(fileName) {
