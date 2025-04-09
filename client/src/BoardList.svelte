@@ -290,7 +290,7 @@
 				d="M843.282963 870.115556c-8.438519-140.515556-104.296296-257.422222-233.908148-297.14963C687.881481 536.272593 742.4 456.533333 742.4 364.088889c0-127.241481-103.158519-230.4-230.4-230.4S281.6 236.847407 281.6 364.088889c0 92.444444 54.518519 172.183704 133.12 208.877037-129.611852 39.727407-225.46963 156.634074-233.908148 297.14963-0.663704 10.903704 7.964444 20.195556 18.962963 20.195556l0 0c9.955556 0 18.299259-7.774815 18.962963-17.73037C227.745185 718.506667 355.65037 596.385185 512 596.385185s284.254815 122.121481 293.357037 276.195556c0.568889 9.955556 8.912593 17.73037 18.962963 17.73037C835.318519 890.311111 843.946667 881.019259 843.282963 870.115556zM319.525926 364.088889c0-106.287407 86.186667-192.474074 192.474074-192.474074s192.474074 86.186667 192.474074 192.474074c0 106.287407-86.186667 192.474074-192.474074 192.474074S319.525926 470.376296 319.525926 364.088889z"/>
 		</svg>
 
-		<a on:click={handleTimelogCheck} class="btn btn-primary">Timelog</a>
+		<a href="#" on:click={handleTimelogCheck} class="btn btn-primary">Timelog</a>
 	</div>
 </div>
 
@@ -301,18 +301,18 @@
 
 {#each boards as board}
 	<div class="d-flex gap-20 justify-between bb-1 p-10">
-		<a on:click={() => handleBoardClick(board)} target="_blank">{board.name}</a>
+		<a href="#" on:click={() => handleBoardClick(board)}>{board.name}</a>
 		<div class="text-right d-flex shrink-0">{convertDate( board.dateLastActivity )}</div>
 	</div>
 {/each}
 
 {#if selectedBoard}
 	<div class="drawer cards">
-		<a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeDrawer}>Close</a>
+		<a href="#" on:click={closeDrawer} class="btn btn-primary p-fixed r-5 t-5 text-small">Close</a>
 		<h3>{selectedBoard.name} Cards</h3>
 		{#each cards as card}
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-				<a class="word-break" on:click={handleCardClick(card)} target="_blank">{card.name}</a>
+				<a href="#" on:click={handleCardClick(card)} class="word-break">{card.name}</a>
 				<span class="text-small">Latest Activity: {convertDate( card.dateLastActivity )}</span>
 			</div>
 		{/each}
@@ -321,9 +321,9 @@
 
 {#if selectedCard}
 	<div class="drawer actions">
-		<a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={closeCardDrawer}>← Back</a>
+		<a href="#" on:click={closeCardDrawer} class="btn btn-primary p-fixed r-5 t-5 text-small">← Back</a>
 
-		<a class="word-break" href="{selectedCard.shortUrl}" target="_blank"><h3>{selectedCard.name}</h3></a>
+		<a href="{selectedCard.shortUrl}" class="word-break" target="_blank"><h3>{selectedCard.name}</h3></a>
 		<span class="card-description">{selectedCard.desc}</span>
 		<div class="mt-20">
 			{#if actions && actions.length > 0}
@@ -350,7 +350,7 @@
 
 {#if selectedTimelog}
 	<div class="drawer timelog">
-		<a class="btn btn-primary p-fixed r-5 t-5 text-small" on:click={handleTimelogCheck}>Close</a>
+		<a href="#" on:click={handleTimelogCheck} class="btn btn-primary p-fixed r-5 t-5 text-small">Close</a>
 		<h3>Timelog</h3>
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 			<span class="text-small mb-10">Use this tool to check the logged time based on cards. Simply paste the card url and check the timelog</span>
@@ -359,7 +359,7 @@
 		<div class="pt-10 pb-10 bb-1 d-flex direction-column">
 			<input id="timelog-url" type="text" bind:value={timelogUrl} placeholder="Paste the card URL here"/>
 			{#if showTimelogButton}
-				<button class="btn btn-primary" on:click={handleTimeLogSubmit} disabled="{loadingState}">Check Timelog</button>
+				<button on:click={handleTimeLogSubmit} class="btn btn-primary" disabled="{loadingState}">Check Timelog</button>
 			{/if}
 		</div>
 
@@ -368,7 +368,14 @@
 				<span class="text-small mb-10">Logged time: {secondsToMinutes( timelog.duration )}</span>
 				<span class="text-small mb-10">Logged by: {timelog.user_name}</span>
 				<span class="text-small mb-10">Logged on: {beautifyDate( timelog )} </span>
-				<span class="text-small">Paymo Task: <a href="#" id="task-{timelog.task_id}" data-id="{timelog.task_id}" on:click|preventDefault={() => fetchAndDisplayTaskName(timelog.task_id)}>Load {timelog.task_id}</a> or <a target="_blank" href="https://app.paymoapp.com/#/Paymo.Timesheets/task/{timelog.task_id}">Open in Paymo</a></span>
+				<span class="text-small">
+					Paymo Task:
+					<a href="#" on:click|preventDefault={() => fetchAndDisplayTaskName(timelog.task_id)} id="task-{timelog.task_id}" data-id="{timelog.task_id}">
+						Load {timelog.task_id}
+					</a>
+					or
+					<a href="https://app.paymoapp.com/#/Paymo.Timesheets/task/{timelog.task_id}" target="_blank">Open in Paymo</a>
+				</span>
 			</div>
 		{/each}
 
@@ -391,7 +398,7 @@
 			{/if}
 
 			<div class="pt-10 pb-10 bb-1 d-flex direction-column">
-				<button class="btn btn-primary" on:click={paginationPlus}>Load page { pagination }</button>
+				<button on:click={paginationPlus} class="btn btn-primary">Load page { pagination }</button>
 			</div>
 		{/if}
 
