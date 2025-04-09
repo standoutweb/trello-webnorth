@@ -1,6 +1,6 @@
 <script>
-    import {Router, Link, Route} from 'svelte-routing';
-    import BoardList from './BoardList.svelte';
+	import {Router, Link, Route} from 'svelte-routing';
+	import BoardList from './BoardList.svelte';
 </script>
 
 <style>
